@@ -43,7 +43,7 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --adapt_mode \
         --adapt_embed \
         --lora \
-        --mlp_embedding \
         --outdir ${outdir} \
         --dropout ${dropout} \
-        --description ${description}
+        --description ${description} \
+        --log_to_wandb \

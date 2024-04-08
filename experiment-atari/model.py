@@ -123,7 +123,7 @@ class DecisionTransformer(nn.Module):
                     else:
                         raise NotImplementedError
                     self.transformer = get_peft_model(self.transformer, peft_config)
-                
+
                 if adapt_cfg.adapt_wte:
                     print("unfreeze wte")
                     for param in self.transformer.wte.parameters():

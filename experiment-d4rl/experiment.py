@@ -43,14 +43,14 @@ def experiment(
         dataset_name=variant["nlp_dataset_name"],
         dataset_config_name=variant["nlp_dataset_config_name"]
     )
-    
+
     env_name, dataset = variant["env"], variant["dataset"]
     model_type = variant["model_type"]
     description = variant["description"]
     seed = variant["seed"]
     group_name = f"{env_name}-{dataset}-{model_type}-{description}"
     exp_prefix = f"{seed}-{random.randint(int(1e5), int(1e6) - 1)}"
-    
+
     if env_name == "hopper":
         env = gym.make("hopper-medium-v2")
         max_ep_len = 1000
@@ -90,16 +90,16 @@ def experiment(
 
     # load dataset
     data_suffix = variant["data_suffix"]
-    ratio_str = "-" + str(variant["sample_ratio"]) + data_suffix if variant["sample_ratio"] < 1 else ""
+    ratio_str = "-" + str(variant["sample_ratio"]) + "-" + data_suffix if variant["sample_ratio"] < 1 else ""
     if env_name in ["walker2d", "hopper", "halfcheetah", "reacher2d"]:
         dataset_path = f"../data/mujoco/{env_name}-{dataset}{ratio_str}-v2.pkl"
     elif env_name == "kitchen":
         dataset_path = f"../data/kitchen/{env_name}-{dataset}{ratio_str}-v0.pkl"
-    else: 
+    else:
         raise NotImplementedError
     with open(dataset_path, "rb") as f:
         trajectories = pickle.load(f)
-    
+
     # save all path information into separate lists
     mode = variant.get("mode", "normal")
     states, traj_lens, returns = [], [], []
@@ -432,8 +432,8 @@ def experiment(
             name=exp_prefix,
             group=group_name,
             # NOTE: fill in the name of your own wandb project
-            entity="your-group-name",
-            project="your-project-name",
+            #entity="your-group-name",
+            project="hybrid_state_test",
             config=variant,
         )
         # wandb.watch(model)  # wandb has some bug
@@ -513,6 +513,6 @@ if __name__ == "__main__":
         "--nlp_dataset_config_name", type=str, default="wikitext-103-raw-v1"
     )
     parser.add_argument("--co_lambda", type=float, default=0.1)
-    
+
     args = parser.parse_args()
     experiment("d4rl-experiment", variant=vars(args))

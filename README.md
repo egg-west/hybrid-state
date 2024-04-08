@@ -26,6 +26,11 @@ This repo is the official code release for the ICLR 2024 conference paper:
     </p>
 </td></tr></table>&nbsp;</p>
 
+# python environment
+```
+pip install loralib moviepi transformers datasets accelerate timm
+[Errno 2] No such file or directory: '../data/mujoco/hopper-medium-0.1d1-v2.pkl'
+```
 
 # 🧾 Introduction
 We propose **LaMo**, an offline RL framework that leverages the pre-trained **La**nguage Models (LMs) for low-level **Mo**tion control. On sparse-reward tasks, **LaMo** achieves strong results and surpasses recent strong algorithms CQL, IQL, TD3+BC, and DT; On dense-reward tasks, **LaMo** significantly improves Decision Transformer and closes the gap between value-based methods and DT-based methods. Notably, in low-data scenarios, our method demonstrates powerful few-shot learning ability, which can be attributed to the inductive bias from pre-trained LMs.
@@ -116,6 +121,7 @@ bash run.sh [env_name] [dataset_name] [sample_ratio] [description] [seed] [gpu]
 
 An example is:
 ```bash
+bash run.sh hopper medium 1 reproduce 0 0
 bash run.sh hopper medium 0.1 reproduce 0 0
 ```
 

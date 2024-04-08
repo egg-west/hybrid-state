@@ -7,7 +7,9 @@ import random
 
 env_names = ["hopper", "walker2d", "halfcheetah"]
 dataset_types = ["medium"]
-suffix = "yoursuffix"
+suffix = "d1" #"yoursuffix"
+
+#PREFIX = "~/.d4rl/datasets"
 
 for env_name in env_names:
     for dataset_type in dataset_types:

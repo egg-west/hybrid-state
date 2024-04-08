@@ -215,7 +215,7 @@ def train(cfg, seed, log_dict, idx, logger):
             action_losses = []
             if cfg.pretrained_lm != "none" and not cfg.pretrained_lm.startswith("vit") and cfg.pretrained_lm.startswith("gpt2") and cfg.nlp_train.co_training:
                 nlp_train_losses = []
-            
+
         if timestep == train_cfg.train_steps:
             model.save(f'final_train_seed_{seed}')
             model.load(f'best_train_seed_{seed}')
