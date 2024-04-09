@@ -306,10 +306,12 @@ def experiment(
             attn_pdrop=0.1,
             mlp_embedding=variant["mlp_embedding"]
         )
-            
+
         if variant["adapt_mode"]:
             if variant["lora"] == False:
-                for param in model.parameters():
+                # for param in model.parameters():
+                #     param.requires_grad = False
+                for param in model.transformer_model.parameters():
                     param.requires_grad = False
             else:
                 print("adapt lora.")
