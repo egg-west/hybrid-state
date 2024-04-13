@@ -23,6 +23,46 @@ def cnn(input_shape, input_channel, hidden_channels, kernel_sizes, strides, padd
     layers.append(output_activation)
     return nn.Sequential(*layers)
 
+class StateAbstractionLayer(nn.Module):
+    def __init__(self, d_model, n_heads, d_keys=None, d_llm=None, attention_dropout=0.1):
+        super(StateAbstractionLayer, self).__init__()
+
+        d_keys = d_keys or (d_model // n_heads)
+
+        self.query_projection = nn.Linear(d_model, d_keys * n_heads)
+        self.key_projection = nn.Linear(d_llm, d_keys * n_heads)
+        self.value_projection = nn.Linear(d_llm, d_keys * n_heads)
+        self.out_projection = nn.Linear(d_keys * n_heads, d_llm)
+        self.n_heads = n_heads
+        self.dropout = nn.Dropout(attention_dropout)
+
+    def forward(self, target_embedding, source_embedding, value_embedding):
+        B, L, _ = target_embedding.shape
+        S, _ = source_embedding.shape
+        H = self.n_heads
+
+        target_embedding = self.query_projection(target_embedding).view(B, L, H, -1)
+        source_embedding = self.key_projection(source_embedding).view(S, H, -1)
+        value_embedding = self.value_projection(value_embedding).view(S, H, -1)
+
+        out = self.reprogramming(target_embedding, source_embedding, value_embedding)
+
+        out = out.reshape(B, L, -1)
+
+        return self.out_projection(out)
+
+    def reprogramming(self, target_embedding, source_embedding, value_embedding):
+        B, L, H, E = target_embedding.shape
+
+        scale = 1. / math.sqrt(E)
+
+        scores = torch.einsum("blhe,she->bhls", target_embedding, source_embedding)
+
+        A = self.dropout(torch.softmax(scale * scores, dim=-1))
+        reprogramming_embedding = torch.einsum("bhls,she->blhe", A, value_embedding)
+
+        return reprogramming_embedding
+
 class ResidualBlock(nn.Module):
     def __init__(self, dim1, dim2):
         super().__init__()
@@ -207,6 +247,18 @@ class DecisionTransformer(nn.Module):
         # prediction heads
         self.predict_action = nn.Sequential(nn.Linear(hidden_dim, action_dim), nn.Tanh())
 
+        self.word_embeddings = self.transformer.get_input_embeddings().weight
+        self.vocab_size = self.word_embeddings.shape[0]
+        self.num_tokens = 500
+        self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+        # self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+        # self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+
+        self.state_abstraction_layer = StateAbstractionLayer(d_model=hidden_dim, n_heads=8, d_keys=None, d_llm=hidden_dim)
+        #self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_dim, n_heads=8, d_keys=None, d_llm=hidden_dim)
+        #self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_dim, n_heads=8, d_keys=None, d_llm=hidden_dim)
+
+
         self.action_space = action_space
         self.reward_scale = reward_scale
 
@@ -245,14 +297,25 @@ class DecisionTransformer(nn.Module):
         time_embeddings = self.embed_timestep(timesteps)
 
         # time embeddings are treated similar to positional embeddings
-        state_embeddings = self.embed_state(states.reshape(-1, *self.state_dim)).reshape(batch_size, context_len, -1) + time_embeddings
+        state_embeddings = self.embed_state(states.reshape(-1, *self.state_dim)).reshape(batch_size, context_len, -1)# + time_embeddings
         action_embeddings = self.embed_action(actions) + time_embeddings
         returns_embeddings = self.embed_rtg(rewards_to_go) + time_embeddings
+
+        state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        abstract_state_embedding = self.state_abstraction_layer(
+            state_embeddings,
+            state_prototype_embeddings,
+            state_prototype_embeddings) + time_embeddings
+        # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
+        # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        # abstract_returns_embedding = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
         
         # stack rtg, states and actions and reshape sequence as
         # (r_0, s_0, a_0, r_1, s_1, a_1, r_2, s_2, a_2 ...)
         h = torch.stack(
-            (returns_embeddings, state_embeddings, action_embeddings), dim=2
+            #(returns_embeddings, state_embeddings, action_embeddings), dim=2
+            (returns_embeddings, abstract_state_embedding, action_embeddings), dim=2
         ).reshape(batch_size, 3 * context_len, self.hidden_dim)
 
         h = self.embed_ln(h)

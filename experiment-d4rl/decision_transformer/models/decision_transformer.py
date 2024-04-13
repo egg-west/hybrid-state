@@ -179,10 +179,14 @@ class DecisionTransformer(TrajectoryModel):
         self.word_embeddings = self.transformer_model.get_input_embeddings().weight
         self.vocab_size = self.word_embeddings.shape[0]
         self.num_tokens = 500
-        self.prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+        self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+        self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+        self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
 
         self.state_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-        
+        self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+        self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+
         self.past_key_values = None
         print(self)
 
@@ -219,8 +223,14 @@ class DecisionTransformer(TrajectoryModel):
         # print(f"{state_embeddings.shape=}, {time_embeddings.shape=}")
         ## both are ([64, 20, 768])
 
-        prototype_embeddings = self.prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        abstract_state_embedding = self.state_abstraction_layer(state_embeddings, prototype_embeddings, prototype_embeddings)
+        # state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        # abstract_state_embedding = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+        # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
+        # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        # abstract_returns_embedding = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
+
+
         # print(f"{prototype_embeddings.shape=}, {abstract_state_embedding.shape=}")
         ## [1000, 768]), abstract_state_embedding.shape=torch.Size([64, 20, 768])
 
@@ -229,8 +239,8 @@ class DecisionTransformer(TrajectoryModel):
 
         stacked_inputs = (
             torch.stack(
-                (returns_embeddings, abstract_state_embedding, action_embeddings), dim=1
-                #(returns_embeddings, state_embeddings, action_embeddings), dim=1
+                #(abstract_returns_embedding, abstract_state_embedding, abstract_action_embedding), dim=1
+                (returns_embeddings, state_embeddings, action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)
             .reshape(batch_size, 3 * seq_length, self.hidden_size)

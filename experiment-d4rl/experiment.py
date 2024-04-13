@@ -54,7 +54,8 @@ def experiment(
     if env_name == "hopper":
         env = gym.make("hopper-medium-v2")
         max_ep_len = 1000
-        env_targets = [3600, 2600, 2200, 1800]  # evaluation conditioning targets
+        #env_targets = [3600, 2600, 2200, 1800]  # evaluation conditioning targets
+        env_targets = [3600, 2600]  # evaluation conditioning targets
         scale = 1000.0  # normalization for rewards/returns
     elif env_name == "halfcheetah":
         env = gym.make("halfcheetah-medium-v2")
@@ -75,7 +76,8 @@ def experiment(
     elif env_name == "kitchen":
         env = gym.make("kitchen-complete-v0")
         max_ep_len = 1000
-        env_targets = [5, 4, 3, 2, 1]
+        #env_targets = [5, 4, 3, 2, 1]
+        env_targets = [4, 3,]
         scale = 1.0
     else:
         raise NotImplementedError

@@ -28,26 +28,6 @@ description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
 gpu=${6}
 outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
 
-CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
-        --dataset ${dataset} \
-        --model_type ${model_type} \
-        --seed ${seed} \
-        --K ${K} \
-        -lr ${lr} \
-        -lmlr ${lmlr} \
-        --num_steps_per_iter ${num_steps_per_iter} \
-        --weight_decay ${weight_decay} \
-        --max_iters ${max_iters} \
-        --num_eval_episodes ${num_eval_episodes} \
-        --sample_ratio ${sample_ratio} \
-        --warmup_steps ${warmup_steps} \
-        --pretrained_lm ${pretrained_lm} \
-        --adapt_mode \
-        --outdir ${outdir} \
-        --dropout ${dropout} \
-        --description ${description} \
-        --log_to_wandb
-
 # CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
 #         --dataset ${dataset} \
 #         --model_type ${model_type} \
@@ -63,9 +43,29 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
 #         --warmup_steps ${warmup_steps} \
 #         --pretrained_lm ${pretrained_lm} \
 #         --adapt_mode \
-#         --adapt_embed \
-#         --lora \
 #         --outdir ${outdir} \
 #         --dropout ${dropout} \
 #         --description ${description} \
-#        --log_to_wandb \
+#         --log_to_wandb
+
+CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
+        --dataset ${dataset} \
+        --model_type ${model_type} \
+        --seed ${seed} \
+        --K ${K} \
+        -lr ${lr} \
+        -lmlr ${lmlr} \
+        --num_steps_per_iter ${num_steps_per_iter} \
+        --weight_decay ${weight_decay} \
+        --max_iters ${max_iters} \
+        --num_eval_episodes ${num_eval_episodes} \
+        --sample_ratio ${sample_ratio} \
+        --warmup_steps ${warmup_steps} \
+        --pretrained_lm ${pretrained_lm} \
+        --adapt_mode \
+        --adapt_embed \
+        --lora \
+        --outdir ${outdir} \
+        --dropout ${dropout} \
+        --description ${description} \
+       --log_to_wandb \

@@ -94,7 +94,8 @@ def train(cfg, seed, log_dict, idx, logger):
             name=f"{seed}-{np.random.randint(1000000)}",
             group=f"{cfg.env.env_name}-{cfg.dataset_type}-{cfg.model_name}-{cfg.pretrained_lm}{pretrain_description}-ratio={cfg.sample_ratio}-{mlp_description}{lora_description}{cotraining_description}{lr_description}{wd_description}{cfg.description}",
             entity="human-dex",
-            project="wikiRL",
+            #project="wikiRL",
+            project="LaMo-Atari"
         )
     utils.config_logging("main.log")
     env_name = cfg.env.env_name
@@ -189,7 +190,6 @@ def train(cfg, seed, log_dict, idx, logger):
                         best_reward = eval_mean
                         model.save(f'best_train_seed_{seed}' if timestep <= train_cfg.train_steps else f'best_finetune_seed_{seed}')
                         logger.info(f'Seed: {seed}, Save best model at eval mean {best_reward:.4f} and step {timestep} with rtg target {target}')
-                    
             else:
                 eval_mean, eval_std, normalized_mean, normalized_std = eval(env_name, eval_env, model, train_cfg.rtg_target)
                 utils.write_to_dict(local_log_dict, 'eval_steps', timestep - 1)
