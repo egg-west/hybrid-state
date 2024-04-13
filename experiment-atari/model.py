@@ -297,15 +297,15 @@ class DecisionTransformer(nn.Module):
         time_embeddings = self.embed_timestep(timesteps)
 
         # time embeddings are treated similar to positional embeddings
-        state_embeddings = self.embed_state(states.reshape(-1, *self.state_dim)).reshape(batch_size, context_len, -1)# + time_embeddings
+        state_embeddings = self.embed_state(states.reshape(-1, *self.state_dim)).reshape(batch_size, context_len, -1) + time_embeddings
         action_embeddings = self.embed_action(actions) + time_embeddings
         returns_embeddings = self.embed_rtg(rewards_to_go) + time_embeddings
 
-        state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        abstract_state_embedding = self.state_abstraction_layer(
-            state_embeddings,
-            state_prototype_embeddings,
-            state_prototype_embeddings) + time_embeddings
+        # state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        # abstract_state_embedding = self.state_abstraction_layer(
+        #     state_embeddings,
+        #     state_prototype_embeddings,
+        #     state_prototype_embeddings) + time_embeddings
         # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
         # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
@@ -314,8 +314,8 @@ class DecisionTransformer(nn.Module):
         # stack rtg, states and actions and reshape sequence as
         # (r_0, s_0, a_0, r_1, s_1, a_1, r_2, s_2, a_2 ...)
         h = torch.stack(
-            #(returns_embeddings, state_embeddings, action_embeddings), dim=2
-            (returns_embeddings, abstract_state_embedding, action_embeddings), dim=2
+            (returns_embeddings, state_embeddings, action_embeddings), dim=2
+            #(returns_embeddings, abstract_state_embedding, action_embeddings), dim=2
         ).reshape(batch_size, 3 * context_len, self.hidden_dim)
 
         h = self.embed_ln(h)
