@@ -93,7 +93,7 @@ def train(cfg, seed, log_dict, idx, logger):
         wandb.init(
             name=f"{seed}-{np.random.randint(1000000)}",
             group=f"{cfg.env.env_name}-{cfg.dataset_type}-{cfg.model_name}-{cfg.pretrained_lm}{pretrain_description}-ratio={cfg.sample_ratio}-{mlp_description}{lora_description}{cotraining_description}{lr_description}{wd_description}{cfg.description}",
-            entity="human-dex",
+            #entity="human-dex",
             #project="wikiRL",
             project="LaMo-Atari"
         )
