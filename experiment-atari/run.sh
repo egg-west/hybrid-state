@@ -3,7 +3,7 @@ python main.py \
     env="breakout" \
     dataset_type="medium" \
     model_name="dt" \
-    pretrained_lm="gpt" \
+    pretrained_lm="gpt2" \
     description="desc" \
     seed=0 \
     sample_ratio=0.1 \
