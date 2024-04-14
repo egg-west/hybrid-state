@@ -223,7 +223,7 @@ class DecisionTransformer(TrajectoryModel):
         # print(f"{state_embeddings.shape=}, {time_embeddings.shape=}")
         ## both are ([64, 20, 768])
 
-        # state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_state_embedding = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
         # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
@@ -245,7 +245,10 @@ class DecisionTransformer(TrajectoryModel):
             .permute(0, 2, 1, 3)
             .reshape(batch_size, 3 * seq_length, self.hidden_size)
         )
-        all_embs = self.embed_ln(stacked_inputs)
+        abstract_embedding = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
+
+        all_embs = self.embed_ln(stacked_inputs + abstract_embedding)
+        #all_embs = self.embed_ln(stacked_inputs)
 
         stacked_inputs = all_embs + time_embeddings.repeat_interleave(3, dim=1)
 

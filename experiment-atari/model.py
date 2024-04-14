@@ -297,9 +297,9 @@ class DecisionTransformer(nn.Module):
         time_embeddings = self.embed_timestep(timesteps)
 
         # time embeddings are treated similar to positional embeddings
-        state_embeddings = self.embed_state(states.reshape(-1, *self.state_dim)).reshape(batch_size, context_len, -1) + time_embeddings
-        action_embeddings = self.embed_action(actions) + time_embeddings
-        returns_embeddings = self.embed_rtg(rewards_to_go) + time_embeddings
+        # state_embeddings = self.embed_state(states.reshape(-1, *self.state_dim)).reshape(batch_size, context_len, -1) + time_embeddings
+        # action_embeddings = self.embed_action(actions) + time_embeddings
+        # returns_embeddings = self.embed_rtg(rewards_to_go) + time_embeddings
 
         # state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_state_embedding = self.state_abstraction_layer(
@@ -317,6 +317,14 @@ class DecisionTransformer(nn.Module):
             (returns_embeddings, state_embeddings, action_embeddings), dim=2
             #(returns_embeddings, abstract_state_embedding, action_embeddings), dim=2
         ).reshape(batch_size, 3 * context_len, self.hidden_dim)
+        h_proto_embed = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        abstract_h_embedding = self.state_abstraction_layer(
+            h,
+            h_proto_embed,
+            h_proto_embed)
+        h = h + abstract_h_embedding
+
+        h += time_embeddings.repeat_interleave(3, dim=1)
 
         h = self.embed_ln(h)
         
