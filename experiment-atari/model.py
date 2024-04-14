@@ -300,6 +300,9 @@ class DecisionTransformer(nn.Module):
         # state_embeddings = self.embed_state(states.reshape(-1, *self.state_dim)).reshape(batch_size, context_len, -1) + time_embeddings
         # action_embeddings = self.embed_action(actions) + time_embeddings
         # returns_embeddings = self.embed_rtg(rewards_to_go) + time_embeddings
+        state_embeddings = self.embed_state(states.reshape(-1, *self.state_dim)).reshape(batch_size, context_len, -1)
+        action_embeddings = self.embed_action(actions)
+        returns_embeddings = self.embed_rtg(rewards_to_go)
 
         # state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_state_embedding = self.state_abstraction_layer(
@@ -310,7 +313,7 @@ class DecisionTransformer(nn.Module):
         # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
         # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_returns_embedding = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
-        
+
         # stack rtg, states and actions and reshape sequence as
         # (r_0, s_0, a_0, r_1, s_1, a_1, r_2, s_2, a_2 ...)
         h = torch.stack(
