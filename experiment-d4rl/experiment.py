@@ -60,12 +60,14 @@ def experiment(
     elif env_name == "halfcheetah":
         env = gym.make("halfcheetah-medium-v2")
         max_ep_len = 1000
-        env_targets = [12000, 8000, 6000, 4500]
+        #env_targets = [12000, 8000, 6000, 4500]
+        env_targets = [8000, 6000]
         scale = 1000.0
     elif env_name == "walker2d":
         env = gym.make("walker2d-medium-v2")
         max_ep_len = 1000
-        env_targets = [5000, 4000, 3000, 2500]
+        #env_targets = [5000, 4000, 3000, 2500]
+        env_targets = [5000, 4000,]
         scale = 1000.0
     elif env_name == 'reacher2d':
         from decision_transformer.envs.reacher_2d import Reacher2dEnv
