@@ -224,8 +224,8 @@ class DecisionTransformer(TrajectoryModel):
         ## both are ([64, 20, 768])
 
         state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        abstract_state_embedding = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
-        abstract_state_embedding += state_embeddings
+        abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+        abstract_state_embeddings += state_embeddings
         # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
         # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
@@ -240,7 +240,7 @@ class DecisionTransformer(TrajectoryModel):
 
         stacked_inputs = (
             torch.stack(
-                (returns_embedding, abstract_state_embedding, action_embedding), dim=1
+                (returns_embeddings, abstract_state_embeddings, action_embeddings), dim=1
                 #(returns_embeddings, state_embeddings, action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)
