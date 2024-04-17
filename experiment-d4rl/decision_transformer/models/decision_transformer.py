@@ -224,7 +224,8 @@ class DecisionTransformer(TrajectoryModel):
         ## both are ([64, 20, 768])
 
         state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        # abstract_state_embedding = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+        abstract_state_embedding = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+        abstract_state_embedding += state_embeddings
         # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
         # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
@@ -239,16 +240,16 @@ class DecisionTransformer(TrajectoryModel):
 
         stacked_inputs = (
             torch.stack(
-                #(abstract_returns_embedding, abstract_state_embedding, abstract_action_embedding), dim=1
-                (returns_embeddings, state_embeddings, action_embeddings), dim=1
+                (returns_embedding, abstract_state_embedding, action_embedding), dim=1
+                #(returns_embeddings, state_embeddings, action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)
             .reshape(batch_size, 3 * seq_length, self.hidden_size)
         )
-        abstract_embedding = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
+        #abstract_embedding = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
 
-        all_embs = self.embed_ln(stacked_inputs + abstract_embedding)
-        #all_embs = self.embed_ln(stacked_inputs)
+        #all_embs = self.embed_ln(stacked_inputs + abstract_embedding)
+        all_embs = self.embed_ln(stacked_inputs)
 
         stacked_inputs = all_embs + time_embeddings.repeat_interleave(3, dim=1)
 
