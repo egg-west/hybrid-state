@@ -75,6 +75,11 @@ To download original D4RL data,
 ```bash
 cd data
 python download_d4rl_datasets.py
+
+pip install mujoco==2.3.7
+pip install dm-control==1.0.14
+pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
+pip install -r requirements.txt
 ```
 
 To get downsampled data, you need to modify line 10 of 'data/mujoco/ratio_dataset.py' and line 10 of 'data/kitchen/ratio_dataset.py' as 

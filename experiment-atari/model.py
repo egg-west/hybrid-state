@@ -95,7 +95,6 @@ class ResidualEmbedBlock(nn.Module):
         out += residual
         return out
 
-
 class DecisionTransformer(nn.Module):
     def __init__(self, state_dim, action_dim, context_len, drop_p,
                  action_space, reward_scale, max_timestep, device,
@@ -117,10 +116,10 @@ class DecisionTransformer(nn.Module):
                 if pretrained_lm.startswith("gpt2"):
                     print(f"Loading pretrained {pretrained_lm} model")
                     config = GPT2Config.from_pretrained(pretrained_lm)
-                    
+
                     if random_pretrain and bad_pretrain:
                         raise ValueError("random_pretrain and bad_pretrain cannot be used together.")
-                    
+
                     if random_pretrain and pretrained_lm == "gpt2":
                         print("Loading random corpus pretrained gpt2")
                         self.transformer = get_custom_gpt2_model('random_pretrain')
@@ -146,13 +145,13 @@ class DecisionTransformer(nn.Module):
                     self.transformer =ImageGPTModel(config=config)
                 else:
                     raise NotImplementedError
-            
+
             if adapt_cfg.use_adapt:
                 if lora_cfg.use_lora == 0:
                     print("freeze all")
                     for name, param in self.named_parameters():
                         param.requires_grad = False
-                
+
                 if lora_cfg.use_lora: 
                     print("use lora")
                     self.is_peft = True
@@ -265,7 +264,7 @@ class DecisionTransformer(nn.Module):
         self.max_timestep = max_timestep
         # self.drop_aware = drop_aware
         self.to(device)
-        
+
         print(self)
         trainable_parameters = 0
         total_parameters = 0
@@ -276,7 +275,7 @@ class DecisionTransformer(nn.Module):
             total_parameters += param.numel()
         print(f"Total parameters: {total_parameters}, trainable parameters: {trainable_parameters}")
 
-    
+
     def _norm_reward_to_go(self, reward_to_go):
         return reward_to_go / self.reward_scale
 

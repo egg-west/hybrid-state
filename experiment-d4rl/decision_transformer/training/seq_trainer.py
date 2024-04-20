@@ -45,7 +45,7 @@ class SequenceTrainer(Trainer):
         loss = action_loss
         
         if self.args["inverse"]:
-            observation_loss = torch.mean((observation_preds[:, :-1] - states[:, 1:]))
+            observation_loss = torch.mean((observation_preds[:, :-1] - states[:, 1:])**2)
             loss += observation_loss
 
         batch = next(self.train_nlp_dataset)

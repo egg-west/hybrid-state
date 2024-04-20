@@ -1,6 +1,7 @@
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, GPT2Config
 import torch
 import numpy as np
+
 def get_custom_gpt2_model(model_type='random_pretrain'):
     if model_type == 'random_pretrain':
         path = '/home/yuyao/meta-rl/atari/random_pretrain.pt'
