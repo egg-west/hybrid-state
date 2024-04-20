@@ -84,6 +84,7 @@ class DecisionTransformer(TrajectoryModel):
         super().__init__(state_dim, act_dim, max_length=max_length)
 
         self.hidden_size = hidden_size
+        self.do_reprograming = args["reprogram"]
         
         if args["pretrained_lm"] is not None:
             print("Loading from pretrained "+args["pretrained_lm"]+" model")
@@ -176,16 +177,17 @@ class DecisionTransformer(TrajectoryModel):
             )
             self.predict_return = torch.nn.Linear(hidden_size, 1)
 
-        self.word_embeddings = self.transformer_model.get_input_embeddings().weight
-        self.vocab_size = self.word_embeddings.shape[0]
-        self.num_tokens = 500
-        self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-        self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-        self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+        if self.do_reprograming:
+            self.word_embeddings = self.transformer_model.get_input_embeddings().weight
+            self.vocab_size = self.word_embeddings.shape[0]
+            self.num_tokens = 1000
+            self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+            self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+            self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
 
-        self.state_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-        self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-        self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+            self.state_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+            self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+            self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
 
         self.past_key_values = None
         print(self)
@@ -223,9 +225,10 @@ class DecisionTransformer(TrajectoryModel):
         # print(f"{state_embeddings.shape=}, {time_embeddings.shape=}")
         ## both are ([64, 20, 768])
 
-        state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
-        abstract_state_embeddings += state_embeddings
+        if self.do_reprograming:
+            state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+            abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+            state_embeddings += abstract_state_embeddings
         # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
         # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
@@ -240,7 +243,7 @@ class DecisionTransformer(TrajectoryModel):
 
         stacked_inputs = (
             torch.stack(
-                (returns_embeddings, abstract_state_embeddings, action_embeddings), dim=1
+                (returns_embeddings, state_embeddings, action_embeddings), dim=1
                 #(returns_embeddings, state_embeddings, action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)

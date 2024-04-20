@@ -519,6 +519,7 @@ if __name__ == "__main__":
         "--nlp_dataset_config_name", type=str, default="wikitext-103-raw-v1"
     )
     parser.add_argument("--co_lambda", type=float, default=0.1)
+    parser.add_argument("--reprogram", action="store_true", default=False)
 
     args = parser.parse_args()
     experiment("d4rl-experiment", variant=vars(args))

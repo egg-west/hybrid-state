@@ -10,7 +10,7 @@ warmup_steps=2500 # default is 10000
 num_steps_per_iter=2500 # default is 2500
 # warmup_steps=10
 # num_steps_per_iter=10
-max_iters=40 # default is 40
+max_iters=100 # default is 40
 num_eval_episodes=20 # default is 100
 
 env=${1}
