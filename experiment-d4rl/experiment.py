@@ -38,7 +38,7 @@ def experiment(
 
     if variant["co_training"]:
         print("co training with lambda="+str(variant["co_lambda"]))
-        
+
     train_nlp_dataloader, eval_nlp_dataloader = get_dataset(
         dataset_name=variant["nlp_dataset_name"],
         dataset_config_name=variant["nlp_dataset_config_name"]
@@ -520,6 +520,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--co_lambda", type=float, default=0.1)
     parser.add_argument("--reprogram", action="store_true", default=False)
+    parser.add_argument("--inverse", action="store_true", default=False)
 
     args = parser.parse_args()
     experiment("d4rl-experiment", variant=vars(args))

@@ -85,6 +85,7 @@ class DecisionTransformer(TrajectoryModel):
 
         self.hidden_size = hidden_size
         self.do_reprograming = args["reprogram"]
+        self.inverse = args["inverse"]
         
         if args["pretrained_lm"] is not None:
             print("Loading from pretrained "+args["pretrained_lm"]+" model")
@@ -189,6 +190,10 @@ class DecisionTransformer(TrajectoryModel):
             self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
             self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
 
+        if self.inverse:
+            self.observation_predictor = nn.Linear(self.hidden_size, self.state_dim)
+            self.action_predictor = MLPBlock(self.state_dim * 2, self.act_dim, self.hidden_size)
+
         self.past_key_values = None
         print(self)
 
@@ -277,8 +282,16 @@ class DecisionTransformer(TrajectoryModel):
         # returns (0), states (1), or actions (2); i.e. x[:,1,t] is the token for s_t
         x = x.reshape(batch_size, seq_length, 3, self.hidden_size).permute(0, 2, 1, 3)
 
-        action_preds = self.predict_action(x[:, 1])  # predict next action given state
-        return None, action_preds, None, None
+        if self.inverse:
+            observation_preds = self.observation_predictor(x[:, 1])
+            
+            ss_ = torch.cat([states, observation_preds], dim=-1)
+            #print(f"{ss_.shape=}, {self.state_dim=}")
+            action_preds = self.action_predictor(ss_)
+        else:
+            observation_preds = None
+            action_preds = self.predict_action(x[:, 1])  # predict next action given state
+        return observation_preds, action_preds, None, None
 
     def get_action(
         self,

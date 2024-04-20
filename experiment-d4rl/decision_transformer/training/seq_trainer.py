@@ -18,7 +18,7 @@ class SequenceTrainer(Trainer):
         
         action_target = torch.clone(actions)
 
-        _, action_preds, _, _ = self.model.forward(
+        observation_preds, action_preds, _, _ = self.model.forward(
             states,
             actions,
             rewards,
@@ -34,7 +34,7 @@ class SequenceTrainer(Trainer):
             attention_mask.reshape(-1) > 0
         ]
 
-        loss = self.loss_fn(
+        action_loss = self.loss_fn(
             None,
             action_preds,
             None,
@@ -42,6 +42,11 @@ class SequenceTrainer(Trainer):
             action_target,
             None,
         )
+        loss = action_loss
+        
+        if self.args["inverse"]:
+            observation_loss = torch.mean((observation_preds[:, :-1] - states[:, 1:]))
+            loss += observation_loss
 
         batch = next(self.train_nlp_dataset)
         lm_out = self.model.transformer_model(**batch)
@@ -57,7 +62,13 @@ class SequenceTrainer(Trainer):
 
         with torch.no_grad():
             self.diagnostics["training/action_error"] = (
-                torch.mean((action_preds - action_target) ** 2).detach().cpu().item()
+                action_loss.detach().cpu().item()
+                #torch.mean((action_preds - action_target) ** 2).detach().cpu().item()
             )
+            if self.args["inverse"]:
+                self.diagnostics["training/obs_error"] = (
+                    observation_loss.detach().cpu().item()
+                    #torch.mean((action_preds - action_target) ** 2).detach().cpu().item()
+                )
 
         return loss.detach().cpu().item()#, lm_loss.detach().cpu().item()
