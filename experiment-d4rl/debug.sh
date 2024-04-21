@@ -6,11 +6,11 @@ lr=1e-4 # default is 1e-4
 lmlr=1e-5 # default is lr
 weight_decay=1e-5 # default is 1e-4
 dropout=0.1
-warmup_steps=100 # default is 10000
-num_steps_per_iter=100 # default is 2500
+warmup_steps=2500 # default is 10000
+num_steps_per_iter=2500 # default is 2500
 # warmup_steps=10
 # num_steps_per_iter=10
-max_iters=2 # default is 40
+max_iters=100 # default is 40
 num_eval_episodes=20 # default is 100
 
 env=${1}
@@ -69,4 +69,5 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --dropout ${dropout} \
         --description ${description} \
        --log_to_wandb \
-       --inverse
+       --inverse \
+       --reprogram
