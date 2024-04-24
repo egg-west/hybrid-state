@@ -465,7 +465,7 @@ def experiment(
             #name=exp_prefix,
             #group=group_name,
             group=f'{variant["env"]}-{variant["dataset"]}-{variant["sample_ratio"]}-{variant["description"]}',
-            name=variant["seed"],
+            name=str(variant["seed"]),
             # NOTE: fill in the name of your own wandb project
             #entity="your-group-name",
             project="hybrid_state_test",
