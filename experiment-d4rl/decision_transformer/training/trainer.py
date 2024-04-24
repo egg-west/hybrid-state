@@ -38,6 +38,10 @@ class Trainer:
         self.start_time = time.time()
 
     def train_iteration(self, num_steps, iter_num=0, print_logs=False):
+        if self.eval_only:
+            self.model.load_state_dict(
+                torch.load(self.args["path_to_load"])
+            )
 
         train_losses = []
         # lm_losses = []
@@ -52,6 +56,7 @@ class Trainer:
             for _ in progress_bar:
                 # train_loss, lm_loss = self.train_step()
                 train_loss = self.train_step()
+
                 train_losses.append(train_loss)
                 # lm_losses.append(lm_loss)
                 if self.scheduler is not None:

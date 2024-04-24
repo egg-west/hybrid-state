@@ -168,3 +168,83 @@ def evaluate_episode_rtg(
         clip.write_videofile(video_path, logger=None)
 
     return episode_return, episode_length
+
+
+def parallel_evaluate_episode_rtg(
+    multi_envs,
+    state_dim,
+    act_dim,
+    model,
+    max_timesteps=1000,
+    scale=1000.0,
+    state_mean=0.0,
+    state_std=1.0,
+    device="cuda",
+    target_return=None,
+    mode="normal",
+    context_len=20,
+    record_video=False,
+    video_path=None
+):
+    # "context_len" is the same as "max_length" in dt.py
+    model.eval()
+    model.to(device=device)
+
+    state_mean = torch.from_numpy(state_mean).to(device=device)
+    state_std = torch.from_numpy(state_std).to(device=device)
+
+    #state = multi_envs.reset(seed=0)
+    state = multi_envs.reset()
+
+    if mode == "noise":
+        state = state + np.random.normal(0, 0.1, size=state.shape)
+
+    num_envs = multi_envs.num_envs
+    states = (
+        torch.from_numpy(state)
+        .reshape(num_envs, 1, state_dim)
+        .to(device=device, dtype=torch.float32)
+    )
+    actions = torch.zeros((num_envs, 0, act_dim), device=device, dtype=torch.float32)
+    rewards = torch.zeros((num_envs, 0), device=device, dtype=torch.float32)
+    target_returns = torch.tensor([target_return] * num_envs, device=device, dtype=torch.float32).reshape(num_envs, 1, 1)
+    timesteps = torch.tensor([0] * num_envs, device=device, dtype=torch.long).reshape(num_envs, 1)
+
+    t, done_flags = 0, np.zeros(num_envs, dtype=bool)
+    episode_returns, episode_lens = np.zeros(num_envs), np.zeros(num_envs)
+    while not done_flags.all() and t < max_timesteps:
+        actions = torch.cat([actions, torch.zeros((num_envs, 1, act_dim), device=device)], dim=1)
+        rewards = torch.cat([rewards, torch.zeros((num_envs, 1), device=device)], dim=1)
+
+        _, action, _, _ = model.forward(
+            ((states[:, -context_len:, :].to(dtype=torch.float32) - state_mean) / state_std),
+            actions[:, -context_len:, :].to(dtype=torch.float32),
+            rewards.to(dtype=torch.float32),
+            target_returns[:, -context_len:, :].to(dtype=torch.float32),
+            timesteps[:, -context_len:].to(dtype=torch.long),
+        )
+        action = action[:, -1]
+        actions[:, -1, :] = action
+        action = action.detach().cpu().numpy()
+
+        state, reward, done, _ = multi_envs.step(action)
+
+        cur_state = torch.from_numpy(state).to(device=device).reshape(num_envs, 1, state_dim)
+        states = torch.cat([states, cur_state], dim=1)
+        rewards[:, -1] = torch.tensor(reward, dtype=torch.float32)
+        episode_returns += reward * ~done_flags
+        episode_lens += 1 * ~done_flags
+        done_flags = np.bitwise_or(done_flags, done)
+
+        if mode != "delayed":
+            pred_returns = target_returns[:, -1, 0] - torch.tensor((reward / scale), device=device, dtype=torch.float32)
+        else:
+            pred_returns = target_returns[:, -1, 0]
+        target_returns = torch.cat([target_returns, pred_returns.reshape(num_envs, 1, 1)], dim=1)
+        timesteps = torch.cat(
+            [timesteps, torch.ones((num_envs, 1), device=device, dtype=torch.long) * (t + 1)],
+            dim=1,
+        )
+        t += 1
+
+    return episode_returns, episode_lens

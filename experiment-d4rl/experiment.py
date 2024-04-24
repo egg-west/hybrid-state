@@ -12,6 +12,7 @@ import loralib as lora
 from decision_transformer.evaluation.evaluate_episodes import (
     evaluate_episode,
     evaluate_episode_rtg,
+    parallel_evaluate_episode_rtg,
 )
 from decision_transformer.models.decision_transformer import DecisionTransformer
 from decision_transformer.models.mlp_bc import MLPBCModel
@@ -53,6 +54,7 @@ def experiment(
 
     if env_name == "hopper":
         env = gym.make("hopper-medium-v2")
+        test_env = gym.vector.make("hopper-medium-v2", num_envs=20)
         max_ep_len = 1000
         #env_targets = [3600, 2600, 2200, 1800]  # evaluation conditioning targets
         env_targets = [3600, 2600]  # evaluation conditioning targets
@@ -239,7 +241,8 @@ def experiment(
         def fn(model):
             returns, lengths, video_paths = [], [], []
             os.makedirs(os.path.join(variant["outdir"], "videos", str(target_rew)), exist_ok=True)
-            for episode_index in range(num_eval_episodes):
+            #for episode_index in range(num_eval_episodes):
+            for episode_index in range(1):
                 record_video = (episode_index % (num_eval_episodes // 5) == 0) & visualize
                 # if dir doesn't exist, make it
                 if record_video:
@@ -251,12 +254,27 @@ def experiment(
                     video_path = None
                 with torch.no_grad():
                     if model_type == "dt":
-                        ret, length = evaluate_episode_rtg(
-                            env,
+                        # ret, length = evaluate_episode_rtg(
+                        #     env,
+                        #     state_dim,
+                        #     act_dim,
+                        #     model,
+                        #     max_ep_len=max_ep_len,
+                        #     scale=scale,
+                        #     target_return=target_rew / scale,
+                        #     mode=mode,
+                        #     state_mean=state_mean,
+                        #     state_std=state_std,
+                        #     device=device,
+                        #     record_video = record_video,
+                        #     video_path = video_path,
+                        # )
+                        ret, length = parallel_evaluate_episode_rtg(
+                            test_env,
                             state_dim,
                             act_dim,
                             model,
-                            max_ep_len=max_ep_len,
+                            max_timesteps=max_ep_len,
                             scale=scale,
                             target_return=target_rew / scale,
                             mode=mode,
@@ -266,6 +284,7 @@ def experiment(
                             record_video = record_video,
                             video_path = video_path,
                         )
+                        #normalized_return = env.get_normalized_score(np.mean(ret))
                     else:
                         ret, length = evaluate_episode(
                             env,
@@ -279,16 +298,24 @@ def experiment(
                             state_std=state_std,
                             device=device,
                         )
-                returns.append(ret)
-                lengths.append(length)
+                #returns.append(ret)
+                #lengths.append(length)
 
+            # return {
+            #     f"target_{target_rew}_return_mean": np.mean(returns),
+            #     f"target_{target_rew}_return_std": np.std(returns),
+            #     f"target_{target_rew}_length_mean": np.mean(lengths),
+            #     f"target_{target_rew}_length_std": np.std(lengths),
+            #     f"target_{target_rew}_noromalized_return_mean": env.get_normalized_score(np.mean(returns)),
+            #     f"target_{target_rew}_videos": [wandb.Video(video_path, fps=30, format="mp4") for video_path in video_paths]
+            # }
             return {
-                f"target_{target_rew}_return_mean": np.mean(returns),
-                f"target_{target_rew}_return_std": np.std(returns),
-                f"target_{target_rew}_length_mean": np.mean(lengths),
-                f"target_{target_rew}_length_std": np.std(lengths),
-                f"target_{target_rew}_noromalized_return_mean": env.get_normalized_score(np.mean(returns)),
-                f"target_{target_rew}_videos": [wandb.Video(video_path, fps=30, format="mp4") for video_path in video_paths]
+                f"target_{target_rew}_return_mean": np.mean(ret),
+                f"target_{target_rew}_return_std": np.std(ret),
+                f"target_{target_rew}_length_mean": np.mean(length),
+                f"target_{target_rew}_length_std": np.std(length),
+                f"target_{target_rew}_noromalized_return_mean": env.get_normalized_score(np.mean(ret)),
+                #f"target_{target_rew}_videos": [wandb.Video(video_path, fps=30, format="mp4") for video_path in video_paths]
             }
 
         return fn
@@ -310,7 +337,6 @@ def experiment(
             attn_pdrop=0.1,
             mlp_embedding=variant["mlp_embedding"]
         )
-
         if variant["adapt_mode"]:
             if variant["lora"] == False:
                 # for param in model.parameters():
@@ -418,6 +444,7 @@ def experiment(
             scheduler=scheduler,
             loss_fn=lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a) ** 2),
             eval_fns=[eval_episodes(tar, visualize) for tar in env_targets],
+            eval_only=variant["eval_only"],
         )
     elif model_type == "bc":
         trainer = ActTrainer(
@@ -436,7 +463,9 @@ def experiment(
     if log_to_wandb:
         wandb.init(
             name=exp_prefix,
-            group=group_name,
+            #group=group_name,
+            group=f"{variant['env']}-{variant['dataset']}-{variant['sample_ratio']}",
+            name=variant["seed"],
             # NOTE: fill in the name of your own wandb project
             #entity="your-group-name",
             project="hybrid_state_test",
@@ -521,6 +550,11 @@ if __name__ == "__main__":
     parser.add_argument("--co_lambda", type=float, default=0.1)
     parser.add_argument("--reprogram", action="store_true", default=False)
     parser.add_argument("--inverse", action="store_true", default=False)
+    parser.add_argument("--position_embed", action="store_true", default=False)
+    parser.add_argument("--eval_only", action="store_true", default=False)
+    parser.add_argument(
+        "--path_to_load", type=str, default=""
+    )
 
     args = parser.parse_args()
     experiment("d4rl-experiment", variant=vars(args))

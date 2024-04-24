@@ -86,7 +86,6 @@ class DecisionTransformer(TrajectoryModel):
         self.hidden_size = hidden_size
         self.do_reprograming = args["reprogram"]
         self.inverse = args["inverse"]
-        self.position_embed = args['position_embed']
         
         if args["pretrained_lm"] is not None:
             print("Loading from pretrained "+args["pretrained_lm"]+" model")
@@ -217,10 +216,10 @@ class DecisionTransformer(TrajectoryModel):
         #    print(f"{attention_mask.shape=}")
 
         batch_size, seq_length = states.shape[0], states.shape[1]
-
+        
         if attention_mask is None:
             # attention mask for GPT: 1 if can be attended to, 0 if not
-            attention_mask = torch.ones((batch_size, seq_length), dtype=torch.long, device=states.device)
+            attention_mask = torch.ones((batch_size, seq_length), dtype=torch.long)
         # embed each modality with a different head
         
         state_embeddings = self.embed_state(states)
@@ -268,10 +267,7 @@ class DecisionTransformer(TrajectoryModel):
         #all_embs = self.embed_ln(stacked_inputs + abstract_embedding)
         all_embs = self.embed_ln(stacked_inputs)
 
-        if self.position_embed:
-            stacked_inputs = all_embs + time_embeddings.repeat_interleave(3, dim=1)
-        else:
-            stacked_inputs = all_embs
+        stacked_inputs = all_embs + time_embeddings.repeat_interleave(3, dim=1)
 
         # to make the attention mask fit the stacked inputs, have to stack it as well
         stacked_attention_mask = (
