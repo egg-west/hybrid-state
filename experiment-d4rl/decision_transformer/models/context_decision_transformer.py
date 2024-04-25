@@ -230,11 +230,11 @@ class ContextDecisionTransformer(TrajectoryModel):
 
         if attention_mask is None:
             # attention mask for GPT: 1 if can be attended to, 0 if not
-            attention_mask = torch.ones((batch_size, seq_length + len(self.prefix_tokens)), dtype=torch.long, device=states.device)
+            attention_mask = torch.ones((batch_size, seq_length), dtype=torch.long, device=states.device)
             #real_seq_len = seq_length + len(self.prefix_tokens)
             #print(f"{real_seq_len=}")
-        else:
-            prefix_mask = torch.ones((batch_size, len(self.prefix_tokens)), dtype=torch.long, device=states.device)
+
+        prefix_mask = torch.ones((batch_size, len(self.prefix_tokens)), dtype=torch.long, device=states.device)
 
         # print(f"{attention_mask.shape=}") # [64, 20], with prefix: [64, 126]
         # print(f"{attention_mask[0, :]=}")
