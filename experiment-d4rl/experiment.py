@@ -15,6 +15,7 @@ from decision_transformer.evaluation.evaluate_episodes import (
     parallel_evaluate_episode_rtg,
 )
 from decision_transformer.models.decision_transformer import DecisionTransformer
+from decision_transformer.models.context_decision_transformer import ContextDecisionTransformer
 from decision_transformer.models.mlp_bc import MLPBCModel
 from decision_transformer.training.act_trainer import ActTrainer
 from decision_transformer.training.seq_trainer import SequenceTrainer
@@ -85,7 +86,7 @@ def experiment(
         test_env = gym.vector.make(f"kitchen-{dataset}-v0", num_envs=20)
         max_ep_len = 1000
         #env_targets = [5, 4, 3, 2, 1]
-        env_targets = [4, 3,]
+        env_targets = [5, 4, 3,]
         scale = 1.0
     else:
         raise NotImplementedError
@@ -325,22 +326,40 @@ def experiment(
         return fn
     
     if model_type == "dt":
-        model = DecisionTransformer(
-            args=variant,
-            state_dim=state_dim,
-            act_dim=act_dim,
-            max_length=K,
-            max_ep_len=max_ep_len,
-            hidden_size=variant["embed_dim"],
-            n_layer=variant["n_layer"],
-            n_head=variant["n_head"],
-            n_inner=4 * variant["embed_dim"],
-            activation_function=variant["activation_function"],
-            n_positions=1024,
-            resid_pdrop=variant["dropout"],
-            attn_pdrop=0.1,
-            mlp_embedding=variant["mlp_embedding"]
-        )
+        if variant["context_dt"]:
+            model = ContextDecisionTransformer(
+                args=variant,
+                state_dim=state_dim,
+                act_dim=act_dim,
+                max_length=K,
+                max_ep_len=max_ep_len,
+                hidden_size=variant["embed_dim"],
+                n_layer=variant["n_layer"],
+                n_head=variant["n_head"],
+                n_inner=4 * variant["embed_dim"],
+                activation_function=variant["activation_function"],
+                n_positions=1024,
+                resid_pdrop=variant["dropout"],
+                attn_pdrop=0.1,
+                mlp_embedding=variant["mlp_embedding"]
+            )
+        else:
+            model = DecisionTransformer(
+                args=variant,
+                state_dim=state_dim,
+                act_dim=act_dim,
+                max_length=K,
+                max_ep_len=max_ep_len,
+                hidden_size=variant["embed_dim"],
+                n_layer=variant["n_layer"],
+                n_head=variant["n_head"],
+                n_inner=4 * variant["embed_dim"],
+                activation_function=variant["activation_function"],
+                n_positions=1024,
+                resid_pdrop=variant["dropout"],
+                attn_pdrop=0.1,
+                mlp_embedding=variant["mlp_embedding"]
+            )
         if variant["adapt_mode"]:
             if variant["lora"] == False:
                 # for param in model.parameters():
@@ -559,6 +578,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--path_to_load", type=str, default=""
     )
+    parser.add_argument("--context_dt", action="store_true", default=False)
 
     args = parser.parse_args()
     experiment("d4rl-experiment", variant=vars(args))

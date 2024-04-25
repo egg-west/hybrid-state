@@ -61,7 +61,7 @@ class StateAbstractionLayer(nn.Module):
 
         return reprogramming_embedding
 
-class DecisionTransformer(TrajectoryModel):
+class ContextDecisionTransformer(TrajectoryModel):
 
     """
     This model uses GPT to model (Return_1, state_1, action_1, Return_2, state_2, ...)
@@ -86,6 +86,7 @@ class DecisionTransformer(TrajectoryModel):
         self.hidden_size = hidden_size
         self.do_reprograming = args["reprogram"]
         self.inverse = args["inverse"]
+        self.position_embed = args['position_embed']
         
         if args["pretrained_lm"] is not None:
             print("Loading from pretrained "+args["pretrained_lm"]+" model")
@@ -196,6 +197,14 @@ class DecisionTransformer(TrajectoryModel):
 
         self.past_key_values = None
         print(self)
+        
+        self.word_embedding_layer = self.transformer_model.get_input_embeddings()
+        with open("./decision_transformer/prefix/hopper.txt", "r") as f:
+            self.prefix_text = f.read().replace("\n", "")
+        self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        self.prefix_tokens = self.tokenizer.tokenize(self.prefix_text)
+        self.prefix_ids = torch.LongTensor(self.tokenizer.convert_tokens_to_ids(self.prefix_tokens)).to(args["device"])
+        # 106 tokens
 
     def forward(
         self,
@@ -215,13 +224,27 @@ class DecisionTransformer(TrajectoryModel):
         #if attention_mask != None:
         #    print(f"{attention_mask.shape=}")
 
+        prefix_embed = self.prefix_text
+
         batch_size, seq_length = states.shape[0], states.shape[1]
-        
+
         if attention_mask is None:
             # attention mask for GPT: 1 if can be attended to, 0 if not
-            attention_mask = torch.ones((batch_size, seq_length), dtype=torch.long)
-        # embed each modality with a different head
+            attention_mask = torch.ones((batch_size, seq_length + len(self.prefix_tokens)), dtype=torch.long, device=states.device)
+            #real_seq_len = seq_length + len(self.prefix_tokens)
+            #print(f"{real_seq_len=}")
+        else:
+            prefix_mask = torch.ones((batch_size, len(self.prefix_tokens)), dtype=torch.long, device=states.device)
+
+        # print(f"{attention_mask.shape=}") # [64, 20], with prefix: [64, 126]
+        # print(f"{attention_mask[0, :]=}")
         
+        prefix_embeddings = self.word_embedding_layer(self.prefix_ids)
+        #print(f"{prefix_embeddings.shape=}") # [106, 768]
+        batched_prefix_embeddings = torch.stack([prefix_embeddings for _ in range(batch_size)], dim=0)
+        #print(f"{batched_prefix_embeddings.shape=}") # [106, 20, 768]
+
+        # embed each modality with a different head
         state_embeddings = self.embed_state(states)
         action_embeddings = self.embed_action(actions)
         returns_embeddings = self.embed_return(returns_to_go)
@@ -235,18 +258,17 @@ class DecisionTransformer(TrajectoryModel):
             abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
             state_embeddings += abstract_state_embeddings
 
-            action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-            abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
-            action_embeddings += abstract_action_embeddings
-            
-            returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-            abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
-            returns_embeddings += abstract_returns_embeddings
+            # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+            # abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
+            # action_embeddings += abstract_action_embeddings
+
+            # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+            # abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
+            # returns_embeddings += abstract_returns_embeddings
         # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
         # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_returns_embedding = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
-
 
         # print(f"{prototype_embeddings.shape=}, {abstract_state_embedding.shape=}")
         ## [1000, 768]), abstract_state_embedding.shape=torch.Size([64, 20, 768])
@@ -257,7 +279,6 @@ class DecisionTransformer(TrajectoryModel):
         stacked_inputs = (
             torch.stack(
                 (returns_embeddings, state_embeddings, action_embeddings), dim=1
-                #(returns_embeddings, state_embeddings, action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)
             .reshape(batch_size, 3 * seq_length, self.hidden_size)
@@ -267,7 +288,13 @@ class DecisionTransformer(TrajectoryModel):
         #all_embs = self.embed_ln(stacked_inputs + abstract_embedding)
         all_embs = self.embed_ln(stacked_inputs)
 
-        stacked_inputs = all_embs + time_embeddings.repeat_interleave(3, dim=1)
+        if self.position_embed:
+            stacked_inputs = all_embs + time_embeddings.repeat_interleave(3, dim=1)
+        else:
+            stacked_inputs = all_embs
+
+        stacked_inputs = torch.cat([batched_prefix_embeddings, all_embs], dim=1)
+        # print(f"{stacked_inputs.shape=}") # 64, 166, 768
 
         # to make the attention mask fit the stacked inputs, have to stack it as well
         stacked_attention_mask = (
@@ -275,6 +302,8 @@ class DecisionTransformer(TrajectoryModel):
             .permute(0, 2, 1)
             .reshape(batch_size, 3 * seq_length)
         )
+        stacked_attention_mask = torch.cat([prefix_mask, stacked_attention_mask], dim=1)
+        #print(f"{stacked_attention_mask.shape=}") # [64, 166]
 
         # we feed in the input embeddings (not word indices as in NLP) to the model
         transformer_outputs = self.transformer(
@@ -283,8 +312,9 @@ class DecisionTransformer(TrajectoryModel):
             past_key_values=None,  # self.past_key_values,
             use_cache=True,
         )
-        x = transformer_outputs["last_hidden_state"]
+        x = transformer_outputs["last_hidden_state"][:, len(self.prefix_ids):, :]
         self.past_key_values = transformer_outputs["past_key_values"]
+        #print(f"{x.shape=}") [64, 60, 768]
 
         # reshape x so that the second dimension corresponds to the original
         # returns (0), states (1), or actions (2); i.e. x[:,1,t] is the token for s_t
