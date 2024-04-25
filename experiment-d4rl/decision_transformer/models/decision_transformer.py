@@ -236,13 +236,13 @@ class DecisionTransformer(TrajectoryModel):
             abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
             state_embeddings += abstract_state_embeddings
 
-            action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-            abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
-            action_embeddings += abstract_action_embeddings
-            
-            returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-            abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
-            returns_embeddings += abstract_returns_embeddings
+            # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+            # abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
+            # action_embeddings += abstract_action_embeddings
+
+            # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+            # abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
+            # returns_embeddings += abstract_returns_embeddings
         # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
         # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
