@@ -61,12 +61,14 @@ def experiment(
         scale = 1000.0  # normalization for rewards/returns
     elif env_name == "halfcheetah":
         env = gym.make("halfcheetah-medium-v2")
+        test_env = gym.vector.make("halfcheetah-medium-v2", num_envs=20)
         max_ep_len = 1000
         #env_targets = [12000, 8000, 6000, 4500]
         env_targets = [12000, 8000, 6000]
         scale = 1000.0
     elif env_name == "walker2d":
         env = gym.make("walker2d-medium-v2")
+        test_env = gym.vector.make("walker2d-medium-v2", num_envs=20)
         max_ep_len = 1000
         #env_targets = [5000, 4000, 3000, 2500]
         env_targets = [5000, 4000,]
@@ -74,11 +76,13 @@ def experiment(
     elif env_name == 'reacher2d':
         from decision_transformer.envs.reacher_2d import Reacher2dEnv
         env = Reacher2dEnv()
+        raise NotImplementedError
         max_ep_len = 100
         env_targets = [76, 40]
         scale = 10.
     elif env_name == "kitchen":
         env = gym.make("kitchen-complete-v0")
+        test_env = gym.vector.make("kitchen-complete-v0", num_envs=20)
         max_ep_len = 1000
         #env_targets = [5, 4, 3, 2, 1]
         env_targets = [4, 3,]
