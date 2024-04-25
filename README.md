@@ -59,6 +59,7 @@ First, you need to download the file from this [link](https://mujoco.org/downloa
 ```bash
 cd experiment-d4rl
 conda env create -f env.yml
+conda create -n lamo-d4rl python=3.8.17
 ```
 After that, add the following lines to your `~/.bashrc` file:
 ```bash

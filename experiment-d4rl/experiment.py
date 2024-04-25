@@ -53,22 +53,22 @@ def experiment(
     exp_prefix = f"{seed}-{random.randint(int(1e5), int(1e6) - 1)}"
 
     if env_name == "hopper":
-        env = gym.make("hopper-medium-v2")
-        test_env = gym.vector.make("hopper-medium-v2", num_envs=20)
+        env = gym.make(f"hopper-{dataset}-v2")
+        test_env = gym.vector.make(f"hopper-{dataset}-v2", num_envs=20)
         max_ep_len = 1000
         #env_targets = [3600, 2600, 2200, 1800]  # evaluation conditioning targets
         env_targets = [3600, 2600]  # evaluation conditioning targets
         scale = 1000.0  # normalization for rewards/returns
     elif env_name == "halfcheetah":
-        env = gym.make("halfcheetah-medium-v2")
-        test_env = gym.vector.make("halfcheetah-medium-v2", num_envs=20)
+        env = gym.make(f"halfcheetah-{dataset}-v2")
+        test_env = gym.vector.make(f"halfcheetah-{dataset}-v2", num_envs=20)
         max_ep_len = 1000
         #env_targets = [12000, 8000, 6000, 4500]
         env_targets = [12000, 8000, 6000]
         scale = 1000.0
     elif env_name == "walker2d":
-        env = gym.make("walker2d-medium-v2")
-        test_env = gym.vector.make("walker2d-medium-v2", num_envs=20)
+        env = gym.make(f"walker2d-{dataset}-v2")
+        test_env = gym.vector.make(f"walker2d-{dataset}-v2", num_envs=20)
         max_ep_len = 1000
         #env_targets = [5000, 4000, 3000, 2500]
         env_targets = [5000, 4000,]
@@ -81,8 +81,8 @@ def experiment(
         env_targets = [76, 40]
         scale = 10.
     elif env_name == "kitchen":
-        env = gym.make("kitchen-complete-v0")
-        test_env = gym.vector.make("kitchen-complete-v0", num_envs=20)
+        env = gym.make(f"kitchen-{dataset}-v0")
+        test_env = gym.vector.make(f"kitchen-{dataset}-v0", num_envs=20)
         max_ep_len = 1000
         #env_targets = [5, 4, 3, 2, 1]
         env_targets = [4, 3,]

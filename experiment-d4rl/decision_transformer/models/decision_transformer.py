@@ -222,7 +222,7 @@ class DecisionTransformer(TrajectoryModel):
             # attention mask for GPT: 1 if can be attended to, 0 if not
             attention_mask = torch.ones((batch_size, seq_length), dtype=torch.long, device=states.device)
         # embed each modality with a different head
-        
+
         state_embeddings = self.embed_state(states)
         action_embeddings = self.embed_action(actions)
         returns_embeddings = self.embed_return(returns_to_go)
@@ -248,7 +248,6 @@ class DecisionTransformer(TrajectoryModel):
         # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
         # abstract_returns_embedding = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
 
-
         # print(f"{prototype_embeddings.shape=}, {abstract_state_embedding.shape=}")
         ## [1000, 768]), abstract_state_embedding.shape=torch.Size([64, 20, 768])
 
@@ -258,7 +257,6 @@ class DecisionTransformer(TrajectoryModel):
         stacked_inputs = (
             torch.stack(
                 (returns_embeddings, state_embeddings, action_embeddings), dim=1
-                #(returns_embeddings, state_embeddings, action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)
             .reshape(batch_size, 3 * seq_length, self.hidden_size)
