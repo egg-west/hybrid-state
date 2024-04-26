@@ -344,7 +344,7 @@ def experiment(
                 n_positions=1024,
                 resid_pdrop=variant["dropout"],
                 attn_pdrop=0.1,
-                mlp_embedding=variant["mlp_embedding"]
+                mlp_embedding=variant["mlp_embedding"],
                 prefix_text=prefix_text,
             )
         else:
