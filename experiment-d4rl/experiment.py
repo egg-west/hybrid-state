@@ -572,8 +572,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--co_lambda", type=float, default=0.1)
     parser.add_argument("--reprogram", action="store_true", default=False)
-    parser.add_argument("--inverse", action="store_true", default=False)
     parser.add_argument("--position_embed", action="store_true", default=False)
+    parser.add_argument("--gpt_position_embed", action="store_true", default=False)
     parser.add_argument("--eval_only", action="store_true", default=False)
     parser.add_argument(
         "--path_to_load", type=str, default=""

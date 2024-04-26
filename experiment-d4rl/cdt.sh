@@ -68,5 +68,7 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --outdir ${outdir} \
         --dropout ${dropout} \
         --description ${description} \
+        --position_embed \
         --context_dt \
-#       --log_to_wandb \
+        --gpt_position_embed \
+       --log_to_wandb \

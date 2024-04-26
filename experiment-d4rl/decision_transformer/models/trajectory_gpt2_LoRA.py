@@ -850,7 +850,7 @@ class GPT2Model_LoRA(GPT2PreTrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
-        to_add_position_embeds=False
+        to_add_position_embeds=False,
     ):
         output_attentions = (
             output_attentions
@@ -945,10 +945,10 @@ class GPT2Model_LoRA(GPT2PreTrainedModel):
 
         if inputs_embeds is None:
             inputs_embeds = self.wte(input_ids)
-        
+
         if to_add_position_embeds:
             inputs_embeds = inputs_embeds + self.wpe(position_ids)
-        
+
         hidden_states = inputs_embeds
 
         if token_type_ids is not None:
