@@ -90,6 +90,9 @@ def experiment(
         scale = 1.0
     else:
         raise NotImplementedError
+    
+    with open(f"./decision_transformer/prefix/{env_name}.txt", "r") as f:
+            prefix_text = f.read().replace("\n", "")
 
     if model_type == "bc":
         env_targets = env_targets[
@@ -342,6 +345,7 @@ def experiment(
                 resid_pdrop=variant["dropout"],
                 attn_pdrop=0.1,
                 mlp_embedding=variant["mlp_embedding"]
+                prefix_text=prefix_text,
             )
         else:
             model = DecisionTransformer(

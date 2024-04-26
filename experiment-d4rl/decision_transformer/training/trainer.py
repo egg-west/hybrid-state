@@ -135,18 +135,7 @@ class Trainer:
                     action_target,
                     reward_target[:, 1:],
                 )
-        elif self.args["inverse"]:
-            state_preds, action_preds, reward_preds = self.model.forward(
-                states,
-                actions,
-                rewards,
-                masks=None,
-                attention_mask=attention_mask,
-                target_return=returns,
-            )
-            loss = torch.mean((action_preds - actions) ** 2) + torch.mean((state_preds[:, :-1] - states[:, 1:]) ** 2)
         else:
-
             state_preds, action_preds, reward_preds = self.model.forward(
                 states,
                 actions,

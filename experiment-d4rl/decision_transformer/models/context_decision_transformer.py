@@ -76,6 +76,7 @@ class ContextDecisionTransformer(TrajectoryModel):
         state_dim,
         act_dim,
         hidden_size,
+        prefix_text,
         max_length=None,
         max_ep_len=4096,
         action_tanh=True,
@@ -195,8 +196,7 @@ class ContextDecisionTransformer(TrajectoryModel):
         print(self)
         
         self.word_embedding_layer = self.transformer_model.get_input_embeddings()
-        with open("./decision_transformer/prefix/hopper.txt", "r") as f:
-            self.prefix_text = f.read().replace("\n", "")
+        self.prefix_text = prefix_text
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.prefix_tokens = self.tokenizer.tokenize(self.prefix_text)
         self.prefix_ids = torch.LongTensor(self.tokenizer.convert_tokens_to_ids(self.prefix_tokens)).to(args["device"])
