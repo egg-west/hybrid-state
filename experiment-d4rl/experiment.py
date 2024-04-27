@@ -327,7 +327,7 @@ def experiment(
             }
 
         return fn
-    
+
     if model_type == "dt":
         if variant["context_dt"]:
             model = ContextDecisionTransformer(
@@ -456,7 +456,7 @@ def experiment(
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer, lambda steps: min((steps + 1) / warmup_steps, 1)
     )
-    
+
     visualize = variant["visualize"]
 
     if "dt" in model_type:
@@ -583,6 +583,7 @@ if __name__ == "__main__":
         "--path_to_load", type=str, default=""
     )
     parser.add_argument("--context_dt", action="store_true", default=False)
+    parser.add_argument("--trajectory_example", action="store_true", default=False)
 
     args = parser.parse_args()
     experiment("d4rl-experiment", variant=vars(args))

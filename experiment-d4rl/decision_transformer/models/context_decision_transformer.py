@@ -88,6 +88,7 @@ class ContextDecisionTransformer(TrajectoryModel):
         self.do_reprograming = args["reprogram"]
         self.position_embed = args['position_embed']
         self.gpt_posiiton_embed = args['gpt_position_embed']
+        self.trajectory_example = args['trajectory_example']
         
         if args["pretrained_lm"] is not None:
             print("Loading from pretrained "+args["pretrained_lm"]+" model")
@@ -192,15 +193,26 @@ class ContextDecisionTransformer(TrajectoryModel):
             self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
             self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
 
+
         self.past_key_values = None
         print(self)
         
         self.word_embedding_layer = self.transformer_model.get_input_embeddings()
-        self.prefix_text = prefix_text
+        self.prefix_text = "<|start_task_description|>" + prefix_text + "<|end_task_description|>"
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.prefix_tokens = self.tokenizer.tokenize(self.prefix_text)
         self.prefix_ids = torch.LongTensor(self.tokenizer.convert_tokens_to_ids(self.prefix_tokens)).to(args["device"])
         # 106 tokens
+
+        if self.trajectory_example:
+            self.example_embed_timestep = nn.Embedding(max_ep_len, hidden_size)
+            self.example_start_text = "<|start_task_description|>"
+            self.example_start_tokens = self.tokenizer.tokenize(self.example_start_text)
+            self.example_start_ids = torch.LongTensor(self.tokenizer.convert_tokens_to_ids(self.example_start_tokens)).to(args["device"])
+
+            self.example_end_text = "<|end_task_description|>"
+            self.example_end_tokens = self.tokenizer.tokenize(self.example_end_text)
+            self.example_end_ids = torch.LongTensor(self.tokenizer.convert_tokens_to_ids(self.example_end_tokens)).to(args["device"])
 
     def forward(
         self,
@@ -211,6 +223,7 @@ class ContextDecisionTransformer(TrajectoryModel):
         timesteps,
         attention_mask=None,
         past_key_values=None,
+        test=False,
     ):
         # print(f"{states.shape=}, {actions.shape=}, {rewards.shape=}, {returns_to_go.shape=}")
         ## states.shape=torch.Size([64, 20, 11]),
@@ -221,7 +234,17 @@ class ContextDecisionTransformer(TrajectoryModel):
         #    print(f"{attention_mask.shape=}")
 
         prefix_embed = self.prefix_text
-
+        if self.trajectory_example:
+            if states.shape[1] <= 5:
+                threshold_time_step = 0
+            else:
+                threshold_time_step = np.random.randint(states.shape[1] - 5)
+        else:
+            threshold_time_step = 0
+        if test:
+            # consider pre-defined threshold_time_step
+            pass
+        #print(f"{threshold_time_step=}")
         batch_size, seq_length = states.shape[0], states.shape[1]
 
         if attention_mask is None:
@@ -235,10 +258,14 @@ class ContextDecisionTransformer(TrajectoryModel):
         # print(f"{attention_mask.shape=}") # [64, 20], with prefix: [64, 126]
         # print(f"{attention_mask[0, :]=}")
         
-        prefix_embeddings = self.word_embedding_layer(self.prefix_ids)
-        #print(f"{prefix_embeddings.shape=}") # [106, 768]
+        prefix_embeddings = self.word_embedding_layer(self.prefix_ids) # [106, 768]
         batched_prefix_embeddings = torch.stack([prefix_embeddings for _ in range(batch_size)], dim=0)
         #print(f"{batched_prefix_embeddings.shape=}") # [106, 20, 768]
+        
+        example_start_embeddings = self.word_embedding_layer(self.example_start_ids)
+        batched_example_start_embeddings = torch.stack([example_start_embeddings for _ in range(batch_size)], dim=0)
+        example_end_embeddings = self.word_embedding_layer(self.example_end_ids)
+        batched_example_end_embeddings = torch.stack([example_end_embeddings for _ in range(batch_size)], dim=0)
 
         # embed each modality with a different head
         state_embeddings = self.embed_state(states)
@@ -261,10 +288,6 @@ class ContextDecisionTransformer(TrajectoryModel):
             # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
             # abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
             # returns_embeddings += abstract_returns_embeddings
-        # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        # abstract_action_embedding = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
-        # returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        # abstract_returns_embedding = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
 
         # print(f"{prototype_embeddings.shape=}, {abstract_state_embedding.shape=}")
         ## [1000, 768]), abstract_state_embedding.shape=torch.Size([64, 20, 768])
@@ -274,32 +297,55 @@ class ContextDecisionTransformer(TrajectoryModel):
 
         stacked_inputs = (
             torch.stack(
-                (returns_embeddings, state_embeddings, action_embeddings), dim=1
+                (returns_embeddings[:, threshold_time_step:, :],
+                 state_embeddings[:, threshold_time_step:, :],
+                 action_embeddings[:, threshold_time_step:, :]), dim=1
             )
             .permute(0, 2, 1, 3)
-            .reshape(batch_size, 3 * seq_length, self.hidden_size)
+            .reshape(batch_size, 3 * (seq_length - threshold_time_step), self.hidden_size)
         )
         #abstract_embedding = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
+
+        # to make the attention mask fit the stacked inputs, have to stack it as well
+        stacked_attention_mask = (
+            torch.stack((attention_mask[:, threshold_time_step:],
+                         attention_mask[:, threshold_time_step:],
+                         attention_mask[:, threshold_time_step:]), dim=1)
+            .permute(0, 2, 1)
+            .reshape(batch_size, 3 * (seq_length - threshold_time_step))
+        )
 
         #all_embs = self.embed_ln(stacked_inputs + abstract_embedding)
         all_embs = self.embed_ln(stacked_inputs)
 
         if self.position_embed:
-            stacked_inputs = all_embs + time_embeddings.repeat_interleave(3, dim=1)
+            stacked_inputs = all_embs + time_embeddings[:, threshold_time_step:, :].repeat_interleave(3, dim=1)
         else:
             stacked_inputs = all_embs
 
-        stacked_inputs = torch.cat([batched_prefix_embeddings, all_embs], dim=1)
+        if self.trajectory_example:
+            example_embed_timestep = self.example_embed_timestep(timesteps[:, :threshold_time_step])
+            batched_example_embeddings = torch.cat([
+                batched_example_start_embeddings,
+                state_embeddings[:, :threshold_time_step, :] + example_embed_timestep, 
+                action_embeddings[:, :threshold_time_step, :] + example_embed_timestep,
+                batched_example_end_embeddings,], dim=1          
+            )
+            example_mask = torch.ones((batch_size, batched_example_embeddings.shape[1]), dtype=torch.long, device=states.device)
+            
+            #print(f"{batched_prefix_embeddings.shape=}, {batched_example_embeddings.shape=}, {all_embs.shape=}")
+            stacked_inputs = torch.cat([batched_prefix_embeddings, batched_example_embeddings, all_embs], dim=1)
+            stacked_attention_mask = torch.cat([prefix_mask, example_mask, stacked_attention_mask], dim=1)
+            #print(f"{stacked_attention_mask.shape=}")
+            token_wise_threshold = len(self.prefix_ids) + len(self.example_start_ids) \
+                + len(self.example_end_ids) + threshold_time_step * 2
 
-        # to make the attention mask fit the stacked inputs, have to stack it as well
-        stacked_attention_mask = (
-            torch.stack((attention_mask, attention_mask, attention_mask), dim=1)
-            .permute(0, 2, 1)
-            .reshape(batch_size, 3 * seq_length)
-        )
-        stacked_attention_mask = torch.cat([prefix_mask, stacked_attention_mask], dim=1)
-        #print(f"{stacked_attention_mask.shape=}") # [64, 166]
-
+        else: # no example module
+            stacked_inputs = torch.cat([batched_prefix_embeddings, all_embs], dim=1)
+            stacked_attention_mask = torch.cat([prefix_mask, stacked_attention_mask], dim=1)
+            token_wise_threshold = len(self.prefix_ids)
+    
+        #print(f"{stacked_inputs.shape=}")
         # we feed in the input embeddings (not word indices as in NLP) to the model
         transformer_outputs = self.transformer(
             inputs_embeds=stacked_inputs,
@@ -308,17 +354,17 @@ class ContextDecisionTransformer(TrajectoryModel):
             use_cache=True,
             to_add_position_embeds=self.gpt_posiiton_embed,
         )
-        x = transformer_outputs["last_hidden_state"][:, len(self.prefix_ids):, :]
+        x = transformer_outputs["last_hidden_state"][:, token_wise_threshold:, :]
         self.past_key_values = transformer_outputs["past_key_values"]
-        #print(f"{x.shape=}") [64, 60, 768]
+        #print(f"{x.shape=}")# [64, 60, 768]
 
         # reshape x so that the second dimension corresponds to the original
         # returns (0), states (1), or actions (2); i.e. x[:,1,t] is the token for s_t
-        x = x.reshape(batch_size, seq_length, 3, self.hidden_size).permute(0, 2, 1, 3)
+        x = x.reshape(batch_size, seq_length - threshold_time_step, 3, self.hidden_size).permute(0, 2, 1, 3)
 
         observation_preds = None
         action_preds = self.predict_action(x[:, 1])  # predict next action given state
-        return observation_preds, action_preds, None, None
+        return observation_preds, action_preds, None, threshold_time_step
 
     def get_action(
         self,

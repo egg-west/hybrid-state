@@ -203,6 +203,7 @@ class DecisionTransformer(TrajectoryModel):
         timesteps,
         attention_mask=None,
         past_key_values=None,
+        test=False,
     ):
         # print(f"{states.shape=}, {actions.shape=}, {rewards.shape=}, {returns_to_go.shape=}")
         ## states.shape=torch.Size([64, 20, 11]),

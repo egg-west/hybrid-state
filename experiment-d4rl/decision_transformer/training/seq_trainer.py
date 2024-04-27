@@ -18,7 +18,7 @@ class SequenceTrainer(Trainer):
         
         action_target = torch.clone(actions)
 
-        observation_preds, action_preds, _, _ = self.model.forward(
+        observation_preds, action_preds, _, threshold_time_step = self.model.forward(
             states,
             actions,
             rewards,
@@ -29,10 +29,18 @@ class SequenceTrainer(Trainer):
 
         self.step += 1
         act_dim = action_preds.shape[2]
-        action_preds = action_preds.reshape(-1, act_dim)[attention_mask.reshape(-1) > 0]
-        action_target = action_target.reshape(-1, act_dim)[
-            attention_mask.reshape(-1) > 0
-        ]
+        #print(f"{attention_mask.shape=}") # [64, 20]
+        if threshold_time_step != None:
+            
+            action_preds = action_preds.reshape(-1, act_dim)[attention_mask[:, threshold_time_step:].reshape(-1) > 0]
+            action_target = action_target[:, threshold_time_step:].reshape(-1, act_dim)[
+                attention_mask[:, threshold_time_step:].reshape(-1) > 0
+            ]
+        else:
+            action_preds = action_preds.reshape(-1, act_dim)[attention_mask.reshape(-1) > 0]
+            action_target = action_target.reshape(-1, act_dim)[
+                attention_mask.reshape(-1) > 0
+            ]
 
         action_loss = self.loss_fn(
             None,
