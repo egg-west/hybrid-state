@@ -262,10 +262,11 @@ class ContextDecisionTransformer(TrajectoryModel):
         batched_prefix_embeddings = torch.stack([prefix_embeddings for _ in range(batch_size)], dim=0)
         #print(f"{batched_prefix_embeddings.shape=}") # [106, 20, 768]
         
-        example_start_embeddings = self.word_embedding_layer(self.example_start_ids)
-        batched_example_start_embeddings = torch.stack([example_start_embeddings for _ in range(batch_size)], dim=0)
-        example_end_embeddings = self.word_embedding_layer(self.example_end_ids)
-        batched_example_end_embeddings = torch.stack([example_end_embeddings for _ in range(batch_size)], dim=0)
+        if self.trajectory_example:
+            example_start_embeddings = self.word_embedding_layer(self.example_start_ids)
+            batched_example_start_embeddings = torch.stack([example_start_embeddings for _ in range(batch_size)], dim=0)
+            example_end_embeddings = self.word_embedding_layer(self.example_end_ids)
+            batched_example_end_embeddings = torch.stack([example_end_embeddings for _ in range(batch_size)], dim=0)
 
         # embed each modality with a different head
         state_embeddings = self.embed_state(states)
