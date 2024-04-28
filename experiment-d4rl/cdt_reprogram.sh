@@ -8,8 +8,8 @@ weight_decay=1e-5 # default is 1e-4
 dropout=0.1
 warmup_steps=2500 # default is 10000
 num_steps_per_iter=2500 # default is 2500
-# warmup_steps=10 # default is 10000
-# num_steps_per_iter=10 # default is 2500
+# warmup_steps=10
+# num_steps_per_iter=10
 max_iters=60 # default is 40
 num_eval_episodes=20 # default is 100
 
@@ -71,5 +71,5 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --position_embed \
         --context_dt \
         --gpt_position_embed \
-        --trajectory_example \
+        --reprogram \
        --log_to_wandb \

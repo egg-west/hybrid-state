@@ -300,8 +300,6 @@ class ContextDecisionTransformer(TrajectoryModel):
             returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
             abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
             returns_embeddings += abstract_returns_embeddings
-            
-            sr_embeddings = state_embeddings + returns_embeddings
 
         # print(f"{prototype_embeddings.shape=}, {abstract_state_embedding.shape=}")
         ## [1000, 768]), abstract_state_embedding.shape=torch.Size([64, 20, 768])
@@ -311,26 +309,28 @@ class ContextDecisionTransformer(TrajectoryModel):
 
         stacked_inputs = (
             torch.stack(
-                (sr_embeddings,
+                (returns_embeddings,
+                 state_embeddings,
                  action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)
-            .reshape(batch_size, 2 * seq_length, self.hidden_size)
+            .reshape(batch_size, 3 * seq_length, self.hidden_size)
         )
         #abstract_embedding = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
 
         # to make the attention mask fit the stacked inputs, have to stack it as well
         stacked_attention_mask = (
             torch.stack((attention_mask,
+                         attention_mask,
                          attention_mask), dim=1)
             .permute(0, 2, 1)
-            .reshape(batch_size, 2 * seq_length)
+            .reshape(batch_size, 3 * seq_length)
         )
 
         all_embs = self.embed_ln(stacked_inputs)
 
         if self.position_embed:
-            stacked_inputs = all_embs + time_embeddings.repeat_interleave(2, dim=1)
+            stacked_inputs = all_embs + time_embeddings.repeat_interleave(3, dim=1)
         else:
             stacked_inputs = all_embs
 
@@ -394,8 +394,7 @@ class ContextDecisionTransformer(TrajectoryModel):
 
         # reshape x so that the second dimension corresponds to the original
         # returns (0), states (1), or actions (2); i.e. x[:,1,t] is the token for s_t
-        x = x.reshape(batch_size, seq_length, 2, self.hidden_size).permute(0, 2, 1, 3)
-        #print(f"{x.shape=}") # [64, 2, 20, 768]
+        x = x.reshape(batch_size, seq_length, 3, self.hidden_size).permute(0, 2, 1, 3)
 
         observation_preds = None
         action_preds = self.predict_action(x[:, 1])  # predict next action given state

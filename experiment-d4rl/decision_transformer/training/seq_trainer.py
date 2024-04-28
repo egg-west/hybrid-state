@@ -6,41 +6,72 @@ from decision_transformer.training.trainer import Trainer
 
 class SequenceTrainer(Trainer):
     def train_step(self):
-        (
-            states,
-            actions,
-            rewards,
-            dones,
-            rtg,
-            timesteps,
-            attention_mask,
-        ) = self.get_batch(self.batch_size)
-        
-        action_target = torch.clone(actions)
+        if self.trajectory_example:
+            (
+                states,
+                actions,
+                rewards,
+                dones,
+                rtg,
+                timesteps,
+                attention_mask,
+            ) = self.get_batch(self.batch_size)
+            
+            (
+                e_states,
+                e_actions,
+                e_rewards,
+                e_dones,
+                e_rtg,
+                e_timesteps,
+                e_attention_mask,
+            ) = self.get_batch(self.batch_size)
 
-        observation_preds, action_preds, _, threshold_time_step = self.model.forward(
-            states,
-            actions,
-            rewards,
-            rtg[:, :-1],
-            timesteps,
-            attention_mask=attention_mask,
-        )
+            action_target = torch.clone(actions)
+
+            observation_preds, action_preds, _, _ = self.model.forward(
+                states,
+                actions,
+                rewards,
+                rtg[:, :-1],
+                timesteps,
+                e_states,
+                e_actions,
+                e_rewards,
+                e_rtg,
+                e_timesteps,
+                attention_mask=attention_mask,
+            )
+        else:
+            (
+                states,
+                actions,
+                rewards,
+                dones,
+                rtg,
+                timesteps,
+                attention_mask,
+            ) = self.get_batch(self.batch_size)
+
+            action_target = torch.clone(actions)
+
+            observation_preds, action_preds, _, _ = self.model.forward(
+                states,
+                actions,
+                rewards,
+                rtg[:, :-1],
+                timesteps,
+                attention_mask=attention_mask,
+            )
 
         self.step += 1
         act_dim = action_preds.shape[2]
         #print(f"{attention_mask.shape=}") # [64, 20]
-        if threshold_time_step != None:
-            
-            action_preds = action_preds.reshape(-1, act_dim)[attention_mask[:, threshold_time_step:].reshape(-1) > 0]
-            action_target = action_target[:, threshold_time_step:].reshape(-1, act_dim)[
-                attention_mask[:, threshold_time_step:].reshape(-1) > 0
-            ]
-        else:
-            action_preds = action_preds.reshape(-1, act_dim)[attention_mask.reshape(-1) > 0]
-            action_target = action_target.reshape(-1, act_dim)[
-                attention_mask.reshape(-1) > 0
-            ]
+
+        action_preds = action_preds.reshape(-1, act_dim)[attention_mask.reshape(-1) > 0]
+        action_target = action_target.reshape(-1, act_dim)[
+            attention_mask.reshape(-1) > 0
+        ]
 
         action_loss = self.loss_fn(
             None,

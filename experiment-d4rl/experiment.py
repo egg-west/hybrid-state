@@ -472,6 +472,7 @@ def experiment(
             loss_fn=lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a) ** 2),
             eval_fns=[eval_episodes(tar, visualize) for tar in env_targets],
             eval_only=variant["eval_only"],
+            trajectory_example=variant["trajectory_example"],
         )
     elif model_type == "bc":
         trainer = ActTrainer(

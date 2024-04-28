@@ -14,6 +14,7 @@ class Trainer:
         batch_size,
         get_batch,
         loss_fn,
+        trajectory_example,
         train_nlp_dataset=None,
         eval_nlp_dataset=None,
         scheduler=None,
@@ -36,6 +37,8 @@ class Trainer:
         self.train_nlp_dataset = cycle(iter(train_nlp_dataset))
 
         self.start_time = time.time()
+        
+        self.trajectory_example = trajectory_example
 
     def train_iteration(self, num_steps, iter_num=0, print_logs=False):
         if self.eval_only:
