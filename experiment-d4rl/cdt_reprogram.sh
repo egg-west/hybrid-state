@@ -17,7 +17,7 @@ env=${1}
 if [ "$env" == "reacher2d" ]; then
     K=5
 else
-    K=20
+    K=30
 fi # K is context length
 dataset=${2}
 sample_ratio=${3}
