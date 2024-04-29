@@ -182,8 +182,10 @@ class ContextDecisionTransformer(TrajectoryModel):
             self.predict_return = torch.nn.Linear(hidden_size, 1)
 
         if self.do_reprograming:
-            self.word_embeddings = self.transformer_model.get_input_embeddings().weight
-            self.vocab_size = self.word_embeddings.shape[0]
+            self.state_word_embeddings = self.transformer_model.get_input_embeddings().weight.clone().to(args["device"])
+            self.action_word_embeddings = self.transformer_model.get_input_embeddings().weight.clone().to(args["device"])
+            self.return_word_embeddings = self.transformer_model.get_input_embeddings().weight.clone().to(args["device"])
+            self.vocab_size = self.state_word_embeddings.shape[0]
             self.num_tokens = 1000
             self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
             self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
@@ -196,8 +198,8 @@ class ContextDecisionTransformer(TrajectoryModel):
 
         self.past_key_values = None
         print(self)
-        
-        self.word_embedding_layer = self.transformer_model.get_input_embeddings()
+
+        self.word_embedding_layer = self.transformer_model.get_input_embeddings()#.clone()
         self.prefix_text = "<|start_task_description|>" + prefix_text + "<|end_task_description|>"
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.prefix_tokens = self.tokenizer.tokenize(self.prefix_text)
@@ -289,15 +291,15 @@ class ContextDecisionTransformer(TrajectoryModel):
         ## both are ([64, 20, 768])
 
         if self.do_reprograming:
-            state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+            state_prototype_embeddings = self.state_prototype_mapping(self.state_word_embeddings.permute(1, 0)).permute(1, 0)
             abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
             state_embeddings += abstract_state_embeddings
 
-            action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+            action_prototype_embeddings = self.action_prototype_mapping(self.action_word_embeddings.permute(1, 0)).permute(1, 0)
             abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
             action_embeddings += abstract_action_embeddings
 
-            returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+            returns_prototype_embeddings = self.returns_prototype_mapping(self.return_word_embeddings.permute(1, 0)).permute(1, 0)
             abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
             returns_embeddings += abstract_returns_embeddings
 
