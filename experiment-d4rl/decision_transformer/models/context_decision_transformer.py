@@ -184,7 +184,7 @@ class ContextDecisionTransformer(TrajectoryModel):
         if self.do_reprograming:
             self.word_embeddings = self.transformer_model.get_input_embeddings().weight.clone().to(args["device"])
 
-            self.vocab_size = self.state_word_embeddings.shape[0]
+            self.vocab_size = self.word_embeddings.shape[0]
             self.num_tokens = 1000
             self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
             self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
