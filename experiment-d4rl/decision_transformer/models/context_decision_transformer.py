@@ -182,9 +182,8 @@ class ContextDecisionTransformer(TrajectoryModel):
             self.predict_return = torch.nn.Linear(hidden_size, 1)
 
         if self.do_reprograming:
-            self.state_word_embeddings = self.transformer_model.get_input_embeddings().weight.clone().to(args["device"])
-            self.action_word_embeddings = self.transformer_model.get_input_embeddings().weight.clone().to(args["device"])
-            self.return_word_embeddings = self.transformer_model.get_input_embeddings().weight.clone().to(args["device"])
+            self.word_embeddings = self.transformer_model.get_input_embeddings().weight.clone().to(args["device"])
+
             self.vocab_size = self.state_word_embeddings.shape[0]
             self.num_tokens = 1000
             self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
@@ -290,18 +289,18 @@ class ContextDecisionTransformer(TrajectoryModel):
         # print(f"{state_embeddings.shape=}, {time_embeddings.shape=}")
         ## both are ([64, 20, 768])
 
-        if self.do_reprograming:
-            state_prototype_embeddings = self.state_prototype_mapping(self.state_word_embeddings.permute(1, 0)).permute(1, 0)
-            abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
-            state_embeddings += abstract_state_embeddings
+        # if self.do_reprograming:
+        #     state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        #     abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+        #     state_embeddings += abstract_state_embeddings
 
-            action_prototype_embeddings = self.action_prototype_mapping(self.action_word_embeddings.permute(1, 0)).permute(1, 0)
-            abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
-            action_embeddings += abstract_action_embeddings
+        #     action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        #     abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
+        #     action_embeddings += abstract_action_embeddings
 
-            returns_prototype_embeddings = self.returns_prototype_mapping(self.return_word_embeddings.permute(1, 0)).permute(1, 0)
-            abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
-            returns_embeddings += abstract_returns_embeddings
+        #     returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+        #     abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
+        #     returns_embeddings += abstract_returns_embeddings
 
         # print(f"{prototype_embeddings.shape=}, {abstract_state_embedding.shape=}")
         ## [1000, 768]), abstract_state_embedding.shape=torch.Size([64, 20, 768])
@@ -318,6 +317,10 @@ class ContextDecisionTransformer(TrajectoryModel):
             .permute(0, 2, 1, 3)
             .reshape(batch_size, 3 * seq_length, self.hidden_size)
         )
+        if self.do_reprograming:
+            state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
+            abstract_stacked_inputs = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
+            stacked_inputs += abstract_stacked_inputs
         #abstract_embedding = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
 
         # to make the attention mask fit the stacked inputs, have to stack it as well
