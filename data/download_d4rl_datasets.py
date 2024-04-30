@@ -9,7 +9,7 @@ kitchen_list = ["kitchen"]
 all_list = mujoco_list + kitchen_list
 
 for env_name in all_list:
-    type_list = ["medium"] if env_name in mujoco_list else ["complete", "partial"]
+    type_list = ["medium", "medium-expert", "medium-replay"] if env_name in mujoco_list else ["complete", "partial"]
     version = "v2" if env_name in mujoco_list else "v0"
     path_prefix = "mujoco" if env_name in mujoco_list else "kitchen"
     for dataset_type in type_list:
