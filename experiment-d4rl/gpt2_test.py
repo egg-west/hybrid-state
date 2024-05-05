@@ -29,32 +29,48 @@ print(text, ' ',tokens , ' ', )
 # data = pipeline("this")
 # print(f"{data.shape=}")
 from transformers import pipeline
-pipeline = pipeline('feature-extraction',fromework="pt", model=model, tokenizer=tokenizer)
-text = "These are context:"
-token_embeddings = pipeline(text)
-print(text)
-print(f"{len(token_embeddings)=}, {len(token_embeddings[0])=}, {len(token_embeddings[0][0])=}")
+# pipeline = pipeline('feature-extraction',fromework="pt", model=model, tokenizer=tokenizer)
+# text = "These are context:"
+# token_embeddings = pipeline(text)
+# print(text)
+# print(f"{len(token_embeddings)=}, {len(token_embeddings[0])=}, {len(token_embeddings[0][0])=}")
 
-print("Output of pipeline")
-print(token_embeddings[0][0][:10])
+# print("Output of pipeline")
+# print(token_embeddings[0][0][:10])
 
-print("Output of self indexing")
-word_embeddings = model.get_input_embeddings()#.weight
-print(f"{word_embeddings.weight.shape=}")
+# print("Output of self indexing")
+# word_embeddings = model.get_input_embeddings()#.weight
+# print(f"{word_embeddings.weight.shape=}")
 
-data = np.array([token_ids[0]])
-data = torch.LongTensor(data)
-out = torch.LongTensor(data)
-print(word_embeddings(out).shape)
-print(word_embeddings(out)[:, :10])
+# data = np.array([token_ids[0]])
+# data = torch.LongTensor(data)
+# out = torch.LongTensor(data)
+# print(word_embeddings(out).shape)
+# print(word_embeddings(out)[:, :10])
 
 #encoded_input = tokenizer(text, return_tensors='pt')
 """
 input_ids, token_type_ids, attention_mask
 """
 #print(encoded_input)
-1
+
 # tokens = tokenizer.tokenize(text)
 # print(f"{tokens=}")
 # ids = tokenizer.convert_tokens_to_ids(tokens)
 # print(f"{ids=}")
+
+t = "0.123456789"
+c = token_text(t)
+print(f"{t}, {c=}, {len(c)}")
+
+t = "0.7734629"
+c = token_text(t)
+print(f"{t}, {c=}, {len(c)}")
+
+t = "0.1"
+c = token_text(t)
+print(f"{t}, {c=}, {len(c)}")
+
+t = "-1.775562"
+c = token_text(t)
+print(f"{t}, {c=}, {len(c)}")

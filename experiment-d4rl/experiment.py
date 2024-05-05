@@ -278,6 +278,7 @@ def experiment(
                         #     video_path = video_path,
                         # )
                         ret, length = parallel_evaluate_episode_rtg(
+                            variant,
                             test_env,
                             state_dim,
                             act_dim,
@@ -508,8 +509,9 @@ def experiment(
             num_steps=variant["num_steps_per_iter"], iter_num=iter + 1, print_logs=True
         )
         print("HI2!")
-        total_training_time += outputs["time/training"]
-        outputs["time/total_training_time"] = total_training_time
+        if not variant["eval_only"]:
+            total_training_time += outputs["time/training"]
+            outputs["time/total_training_time"] = total_training_time
         if log_to_wandb:
             wandb.log(outputs)
 
@@ -585,6 +587,14 @@ if __name__ == "__main__":
     )
     parser.add_argument("--context_dt", action="store_true", default=False)
     parser.add_argument("--trajectory_example", action="store_true", default=False)
+
+    # add adaptive rtg
+    parser.add_argument("--mgdt_sampling", action="store_true", default=False)
+    parser.add_argument("--expert_weight", type=int, default=10)
+    parser.add_argument("--num_bins", type=int, default=60)
+    parser.add_argument("--rtg_weight", type=float, default=0.001)
+    parser.add_argument("--rtg_scale", type=float, default=1000.0)
+    parser.add_argument("--top_percentile", type=float, default=0.15)
 
     args = parser.parse_args()
     experiment("d4rl-experiment", variant=vars(args))

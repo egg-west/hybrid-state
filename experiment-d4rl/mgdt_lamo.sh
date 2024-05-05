@@ -6,10 +6,10 @@ lr=1e-4 # default is 1e-4
 lmlr=1e-5 # default is lr
 weight_decay=1e-5 # default is 1e-4
 dropout=0.1
-# warmup_steps=2500 # default is 10000
-# num_steps_per_iter=2500 # default is 2500
-warmup_steps=10
-num_steps_per_iter=10
+warmup_steps=2500 # default is 10000
+num_steps_per_iter=2500 # default is 2500
+# warmup_steps=10
+# num_steps_per_iter=10
 max_iters=60 # default is 40
 num_eval_episodes=20 # default is 100
 
@@ -27,26 +27,6 @@ seed=${5}
 description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
 gpu=${6}
 outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
-
-# CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
-#         --dataset ${dataset} \
-#         --model_type ${model_type} \
-#         --seed ${seed} \
-#         --K ${K} \
-#         -lr ${lr} \
-#         -lmlr ${lmlr} \
-#         --num_steps_per_iter ${num_steps_per_iter} \
-#         --weight_decay ${weight_decay} \
-#         --max_iters ${max_iters} \
-#         --num_eval_episodes ${num_eval_episodes} \
-#         --sample_ratio ${sample_ratio} \
-#         --warmup_steps ${warmup_steps} \
-#         --pretrained_lm ${pretrained_lm} \
-#         --adapt_mode \
-#         --outdir ${outdir} \
-#         --dropout ${dropout} \
-#         --description ${description} \
-#         --log_to_wandb
 
 CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --dataset ${dataset} \
@@ -68,4 +48,6 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --outdir ${outdir} \
         --dropout ${dropout} \
         --description ${description} \
-       --mgdt_sampling
+        --position_embed \
+        --mgdt_sampling \
+       --log_to_wandb \

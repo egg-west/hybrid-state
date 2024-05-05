@@ -191,10 +191,6 @@ class DecisionTransformer(TrajectoryModel):
             self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
             self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
 
-        if args["mgdt_sampling"]:
-            self.predict_rtg = torch.nn.Linear(hidden_size, int(args["num_bins"]))
-        else:
-            self.predict_rtg = lambda x: None
         self.past_key_values = None
         print(self)
 
@@ -257,7 +253,7 @@ class DecisionTransformer(TrajectoryModel):
 
         stacked_inputs = (
             torch.stack(
-                (state_embeddings, returns_embeddings, action_embeddings), dim=1
+                (returns_embeddings, state_embeddings, action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)
             .reshape(batch_size, 3 * seq_length, self.hidden_size)
@@ -296,8 +292,7 @@ class DecisionTransformer(TrajectoryModel):
 
         observation_preds = None
         action_preds = self.predict_action(x[:, 1])  # predict next action given state
-        rgt_preds = self.predict_rtg(x[:, 0])
-        return observation_preds, action_preds, rgt_preds, None
+        return observation_preds, action_preds, None, None
 
     def get_action(
         self,

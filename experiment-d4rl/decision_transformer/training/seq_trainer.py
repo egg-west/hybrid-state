@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 
 from decision_transformer.training.trainer import Trainer
+from decision_transformer.models.utils import cross_entropy, encode_return
 
 class SequenceTrainer(Trainer):
     def train_step(self):
@@ -55,7 +56,7 @@ class SequenceTrainer(Trainer):
 
             action_target = torch.clone(actions)
 
-            observation_preds, action_preds, _, _ = self.model.forward(
+            observation_preds, action_preds, rtg_preds, _ = self.model.forward(
                 states,
                 actions,
                 rewards,
@@ -82,6 +83,33 @@ class SequenceTrainer(Trainer):
             None,
         )
         loss = action_loss
+
+        if rtg_preds != None:
+            rtg_target = (
+                encode_return(
+                    self.args["env"],
+                    rtg[:, :-1],
+                    num_bin=self.args["num_bins"],
+                    rtg_scale=self.args["rtg_scale"],
+                )
+                .float()
+                .reshape(-1, 1)[
+                    attention_mask.view(-1,) > 0
+                ]
+            )
+            rtg_preds = rtg_preds.reshape(-1, self.args["num_bins"])[
+                attention_mask.view(-1,) > 0
+            ]
+
+            # print(f"{rtg_preds.shape=}, {rtg_target.shape=}")
+            # rtg_preds.shape=torch.Size([1247, 60]), rtg_target.shape=torch.Size([1247, 1])
+            rtg_loss = cross_entropy(rtg_preds, rtg_target, self.args["num_bins"])
+
+            with torch.no_grad():
+                self.diagnostics["training/rtg_ce_loss"] = (
+                    rtg_loss.detach().cpu().item()
+                )
+            loss += self.args["rtg_weight"] * rtg_loss
 
         batch = next(self.train_nlp_dataset)
         lm_out = self.model.transformer_model(**batch)
