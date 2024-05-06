@@ -592,7 +592,7 @@ if __name__ == "__main__":
     parser.add_argument("--mgdt_sampling", action="store_true", default=False)
     parser.add_argument("--expert_weight", type=int, default=10)
     parser.add_argument("--num_bins", type=int, default=60)
-    parser.add_argument("--rtg_weight", type=float, default=0.001)
+    parser.add_argument("--rtg_weight", type=float, default=0.1) #0.001
     parser.add_argument("--rtg_scale", type=float, default=1000.0)
     parser.add_argument("--top_percentile", type=float, default=0.15)
 
