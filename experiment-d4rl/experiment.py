@@ -514,7 +514,7 @@ def experiment(
             print("HI2!")
 
             if log_to_wandb:
-                wandb.log(outputs)
+                wandb.log(outputs, step=int(iter))
     else:
         for iter in range(variant["max_iters"]):
             print("HI!")
