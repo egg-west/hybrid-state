@@ -75,7 +75,6 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --position_embed \
         --mgdt_sampling \
        --eval_only \
-       --reprogram \
        --log_to_wandb \
        --eval_all_checkpoints \
        --eval_only \
