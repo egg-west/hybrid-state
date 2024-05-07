@@ -503,17 +503,30 @@ def experiment(
         # wandb.watch(model)  # wandb has some bug
 
     total_training_time = 0
-    for iter in range(variant["max_iters"]):
-        print("HI!")
-        outputs = trainer.train_iteration(
-            num_steps=variant["num_steps_per_iter"], iter_num=iter + 1, print_logs=True
-        )
-        print("HI2!")
-        if not variant["eval_only"]:
-            total_training_time += outputs["time/training"]
-            outputs["time/total_training_time"] = total_training_time
-        if log_to_wandb:
-            wandb.log(outputs)
+    if variant["eval_all_checkpoints"]:
+        for iter in range(5, variant["max_iters"]+1, 5):
+            trainer.model.load_state_dict(
+                torch.load(f'{variant["path_to_load"]}/model_{iter}.pt')
+            )
+            outputs = trainer.train_iteration(
+                num_steps=variant["num_steps_per_iter"], iter_num=iter, print_logs=True
+            )
+            print("HI2!")
+
+            if log_to_wandb:
+                wandb.log(outputs)
+    else:
+        for iter in range(variant["max_iters"]):
+            print("HI!")
+            outputs = trainer.train_iteration(
+                num_steps=variant["num_steps_per_iter"], iter_num=iter + 1, print_logs=True
+            )
+            print("HI2!")
+            if not variant["eval_only"]:
+                total_training_time += outputs["time/training"]
+                outputs["time/total_training_time"] = total_training_time
+            if log_to_wandb:
+                wandb.log(outputs)
 
 
 if __name__ == "__main__":
@@ -582,6 +595,7 @@ if __name__ == "__main__":
     parser.add_argument("--position_embed", action="store_true", default=False)
     parser.add_argument("--gpt_position_embed", action="store_true", default=False)
     parser.add_argument("--eval_only", action="store_true", default=False)
+    parser.add_argument("--eval_all_checkpoints", action="store_true", default=False)
     parser.add_argument(
         "--path_to_load", type=str, default=""
     )
@@ -590,11 +604,11 @@ if __name__ == "__main__":
 
     # add adaptive rtg
     parser.add_argument("--mgdt_sampling", action="store_true", default=False)
-    parser.add_argument("--expert_weight", type=int, default=10)
+    parser.add_argument("--expert_weight", type=int, default=1) # 10, this is the inverse temperature `k`
     parser.add_argument("--num_bins", type=int, default=60)
-    parser.add_argument("--rtg_weight", type=float, default=0.1) #0.001
+    parser.add_argument("--rtg_weight", type=float, default=0.001) #0.001
     parser.add_argument("--rtg_scale", type=float, default=1000.0)
-    parser.add_argument("--top_percentile", type=float, default=0.15)
+    parser.add_argument("--top_percentile", type=float, default=0.15) #0.15
 
     args = parser.parse_args()
     experiment("d4rl-experiment", variant=vars(args))

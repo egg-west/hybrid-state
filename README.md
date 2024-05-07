@@ -58,7 +58,6 @@ Below, we visualize **8** tasks across **3** domains that we consider.
 First, you need to download the file from this [link](https://mujoco.org/download/mujoco210-linux-x86_64.tar.gz) and `tar -xvf the_file_name` in the `~/.mujoco` folder. Then, run the following commands.
 ```bash
 cd experiment-d4rl
-conda env create -f env.yml
 conda create -n lamo-d4rl python=3.8.17
 ```
 After that, add the following lines to your `~/.bashrc` file:
