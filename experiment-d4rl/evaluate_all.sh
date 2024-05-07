@@ -24,15 +24,16 @@ sample_ratio=${3}
 pretrained_lm="gpt2"
 description=${4}
 seed=${5}
-description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
+
 gpu=${6}
-outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
+
 #K=${7}
 load_path="checkpoints/hopper_medium_gpt2_pretrained-ratio=1_lamoTP10_${gpu}"
 
 expert_weight=${7}
 top_percentile=${8}
-
+description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}K${expert_weight}TP${top_percentile}"
+outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
 # CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
 #         --dataset ${dataset} \
 #         --model_type ${model_type} \
