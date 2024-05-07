@@ -601,6 +601,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--context_dt", action="store_true", default=False)
     parser.add_argument("--trajectory_example", action="store_true", default=False)
+    parser.add_argument("--visualize_attn", action="store_true", default=False)
+
 
     # add adaptive rtg
     parser.add_argument("--mgdt_sampling", action="store_true", default=False)

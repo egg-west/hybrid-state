@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -83,6 +84,7 @@ class DecisionTransformer(TrajectoryModel):
     ):
         super().__init__(state_dim, act_dim, max_length=max_length)
 
+        self.args = args
         self.hidden_size = hidden_size
         self.do_reprograming = args["reprogram"]
         self.position_embed = args['position_embed']
@@ -210,12 +212,10 @@ class DecisionTransformer(TrajectoryModel):
         test=False,
     ):
         # print(f"{states.shape=}, {actions.shape=}, {rewards.shape=}, {returns_to_go.shape=}")
-        ## states.shape=torch.Size([64, 20, 11]),
-        ## actions.shape=torch.Size([64, 20, 3]),
+        ## states [64, 20, 11]
+        ## actions [64, 20, 3]
         ## rewards.shape=torch.Size([64, 20, 1]),
         ## returns_to_go.shape=torch.Size([64, 20, 1])
-        #if attention_mask != None:
-        #    print(f"{attention_mask.shape=}")
 
         batch_size, seq_length = states.shape[0], states.shape[1]
 
@@ -286,8 +286,19 @@ class DecisionTransformer(TrajectoryModel):
             past_key_values=None,  # self.past_key_values,
             use_cache=True,
             to_add_position_embeds=self.gpt_posiiton_embed,
+            output_attentions=True,
         )
         x = transformer_outputs["last_hidden_state"]
+        #print(f"{type(transformer_outputs['attentions'][0])}") # tuple
+        print(f"{transformer_outputs['attentions'][0].shape}") # 12
+        #print(f"{transformer_outputs['attentions'].keys()}")
+        if self.args["visualize_attn"] and transformer_outputs['attentions'][0].shape[-1] == 60:
+            #plot attention
+            plt.imshow(transformer_outputs['attentions'][0][0][0].cpu().detach(), cmap="hot")
+            plt.savefig("test.png")
+            raise NotImplementedError
+
+        #print(transformer_outputs.keys())
         self.past_key_values = transformer_outputs["past_key_values"]
 
         # reshape x so that the second dimension corresponds to the original
