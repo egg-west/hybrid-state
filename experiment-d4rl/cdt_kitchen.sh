@@ -4,13 +4,13 @@ export TOKENIZERS_PARALLELISM=0
 model_type=dt # bc, dt
 lr=1e-4 # default is 1e-4
 lmlr=1e-5 # default is lr
-weight_decay=1e-5 # default is 1e-4
+weight_decay=1e-4 # default is 1e-4
 dropout=0.1
-warmup_steps=1 # default is 10000
-num_steps_per_iter=1 # default is 2500
+warmup_steps=2500 # default is 10000
+num_steps_per_iter=2500 # default is 2500
 # warmup_steps=10
 # num_steps_per_iter=10
-max_iters=1 # default is 40
+max_iters=60 # default is 40
 num_eval_episodes=20 # default is 100
 
 env=${1}
@@ -27,7 +27,6 @@ seed=${5}
 description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
 gpu=${6}
 outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
-#K=${7}
 
 # CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
 #         --dataset ${dataset} \
@@ -69,7 +68,8 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --outdir ${outdir} \
         --dropout ${dropout} \
         --description ${description} \
-       --eval_only \
-       --position_embed \
-       --visualize_attn \
-       --path_to_load "checkpoints/hopper_medium-expert_gpt2_pretrained-ratio=1_Lamo_0/model_40.pt"
+        --position_embed \
+        --context_dt \
+        --gpt_position_embed \
+	--mlp_embedding \
+       --log_to_wandb \
