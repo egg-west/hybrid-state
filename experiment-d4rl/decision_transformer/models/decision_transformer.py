@@ -186,12 +186,12 @@ class DecisionTransformer(TrajectoryModel):
             self.vocab_size = self.word_embeddings.shape[0]
             self.num_tokens = 1000
             self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-            self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-            self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+            #self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+            #self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
 
             self.state_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-            self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-            self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+            #self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+            #self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
 
         if args["mgdt_sampling"]:
             self.predict_rtg = torch.nn.Linear(hidden_size, int(args["num_bins"]))
@@ -235,7 +235,13 @@ class DecisionTransformer(TrajectoryModel):
         if self.do_reprograming:
             state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
             abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
-            state_embeddings += abstract_state_embeddings
+            state_embeddings = abstract_state_embeddings
+
+            abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+            action_embeddings = abstract_action_embeddings
+
+            abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+            returns_embeddings = abstract_returns_embeddings
 
             # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
             # abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
@@ -290,7 +296,7 @@ class DecisionTransformer(TrajectoryModel):
         )
         x = transformer_outputs["last_hidden_state"]
         #print(f"{type(transformer_outputs['attentions'][0])}") # tuple
-        print(f"{transformer_outputs['attentions'][0].shape}") # 12
+        #print(f"{transformer_outputs['attentions'][0].shape}") # 12
         #print(f"{transformer_outputs['attentions'].keys()}")
         if self.args["visualize_attn"] and transformer_outputs['attentions'][0].shape[-1] == 60:
             #plot attention

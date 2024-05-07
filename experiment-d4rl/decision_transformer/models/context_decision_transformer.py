@@ -187,12 +187,12 @@ class ContextDecisionTransformer(TrajectoryModel):
             self.vocab_size = self.word_embeddings.shape[0]
             self.num_tokens = 1000
             self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-            self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-            self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+            #self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+            #self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
 
             self.state_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-            self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-            self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+            #self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+            #self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
 
 
         self.past_key_values = None
@@ -320,7 +320,7 @@ class ContextDecisionTransformer(TrajectoryModel):
         if self.do_reprograming:
             state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
             abstract_stacked_inputs = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
-            stacked_inputs += abstract_stacked_inputs
+            stacked_inputs = abstract_stacked_inputs
         #abstract_embedding = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
 
         # to make the attention mask fit the stacked inputs, have to stack it as well
