@@ -504,7 +504,7 @@ def experiment(
 
     total_training_time = 0
     if variant["eval_all_checkpoints"]:
-        for iter in range(5, variant["max_iters"]+1, 5):
+        for iter in range(5, variant["max_iters"]+1, 10):
             trainer.model.load_state_dict(
                 torch.load(f'{variant["path_to_load"]}/model_{iter}.pt')
             )
