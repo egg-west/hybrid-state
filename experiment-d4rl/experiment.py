@@ -604,7 +604,7 @@ if __name__ == "__main__":
 
     # add adaptive rtg
     parser.add_argument("--mgdt_sampling", action="store_true", default=False)
-    parser.add_argument("--expert_weight", type=int, default=1) # 10, this is the inverse temperature `k`
+    parser.add_argument("--expert_weight", type=float, default=1) # 10, this is the inverse temperature `k`
     parser.add_argument("--num_bins", type=int, default=60)
     parser.add_argument("--rtg_weight", type=float, default=0.001) #0.001
     parser.add_argument("--rtg_scale", type=float, default=1000.0)
