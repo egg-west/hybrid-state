@@ -28,6 +28,7 @@ description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
 gpu=${6}
 outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
 #K=${7}
+load_path="checkpoints/hopper_medium_gpt2_pretrained-ratio=1_lamoTP10_${gpu}"
 
 expert_weight=${7}
 top_percentile=${8}
@@ -78,6 +79,6 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
        --log_to_wandb \
        --eval_all_checkpoints \
        --eval_only \
-       --path_to_load "checkpoints/hopper_medium_gpt2_pretrained-ratio=1_lamoTP10_0" \
+       --path_to_load ${load_path} \
        --expert_weight ${expert_weight} \
        --top_percentile ${top_percentile}
