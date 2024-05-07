@@ -41,7 +41,7 @@ class Trainer:
         self.trajectory_example = trajectory_example
 
     def train_iteration(self, num_steps, iter_num=0, print_logs=False):
-        if self.eval_only:
+        if self.eval_only and not self.args["eval_all_checkpoints"]:
             self.model.load_state_dict(
                 torch.load(self.args["path_to_load"])
             )
