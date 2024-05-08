@@ -16,7 +16,7 @@ def token_text(text):
 def token_id(tokens):
     return tokenizer.convert_tokens_to_ids(tokens)
 
-text = "These are context:"
+text = "state, action, return, prediction"
 tokens = token_text(text)
 token_ids = token_id(tokens)
 print(text, ' ',tokens , ' ', )
