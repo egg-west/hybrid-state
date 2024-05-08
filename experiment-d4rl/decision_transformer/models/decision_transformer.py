@@ -300,7 +300,9 @@ class DecisionTransformer(TrajectoryModel):
         #print(f"{transformer_outputs['attentions'].keys()}")
         if self.args["visualize_attn"] and transformer_outputs['attentions'][0].shape[-1] == 60:
             #plot attention
-            plt.imshow(transformer_outputs['attentions'][0][0][0].cpu().detach(), cmap="hot")
+            target_att = transformer_outputs['attentions'][0][0][0].cpu().detach()
+            target_att = target_att[1::3]
+            plt.imshow(target_att, cmap="hot")
             plt.savefig("test.png")
             raise NotImplementedError
 
