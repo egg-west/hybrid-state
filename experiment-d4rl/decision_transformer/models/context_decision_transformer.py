@@ -200,9 +200,14 @@ class ContextDecisionTransformer(TrajectoryModel):
 
         self.word_embedding_layer = self.transformer_model.get_input_embeddings()#.clone()
         self.prefix_text = "<|start_task_description|>" + prefix_text + "<|end_task_description|>"
-        self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-        self.prefix_tokens = self.tokenizer.tokenize(self.prefix_text)
-        self.prefix_ids = torch.LongTensor(self.tokenizer.convert_tokens_to_ids(self.prefix_tokens)).to(args["device"])
+        #self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+        #self.prefix_tokens = self.tokenizer.tokenize(self.prefix_text)
+        #self.prefix_ids = torch.LongTensor(self.tokenizer.convert_tokens_to_ids(self.prefix_tokens)).to(args["device"])
+        #print(f"{self.prefix_ids.shape=}")
+        self.prefix_ids = torch.LongTensor(np.arange(40)).to(args["device"])
+        self.prefix_embedding = nn.Embedding(50, hidden_size)
+        #print(f"2: {self.prefix_ids.shape=}")
+        
         # 106 tokens
 
         if self.trajectory_example:
@@ -259,12 +264,14 @@ class ContextDecisionTransformer(TrajectoryModel):
             #real_seq_len = seq_length + len(self.prefix_tokens)
             #print(f"{real_seq_len=}")
 
-        prefix_mask = torch.ones((batch_size, len(self.prefix_tokens)), dtype=torch.long, device=states.device)
+        prefix_mask = torch.ones((batch_size, len(self.prefix_ids)), dtype=torch.long, device=states.device)
 
         # print(f"{attention_mask.shape=}") # [64, 20], with prefix: [64, 126]
         # print(f"{attention_mask[0, :]=}")
 
-        prefix_embeddings = self.word_embedding_layer(self.prefix_ids) # [106, 768]
+        #prefix_embeddings = self.word_embedding_layer(self.prefix_ids) # [106, 768]
+        prefix_embeddings = self.prefix_embedding(self.prefix_ids)
+        #print(f"{prefix_embeddings.shape=}")
         batched_prefix_embeddings = torch.stack([prefix_embeddings for _ in range(batch_size)], dim=0)
         #print(f"{batched_prefix_embeddings.shape=}") # [106, 20, 768]
 

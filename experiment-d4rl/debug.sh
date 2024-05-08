@@ -43,10 +43,12 @@ outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
 #         --warmup_steps ${warmup_steps} \
 #         --pretrained_lm ${pretrained_lm} \
 #         --adapt_mode \
+#         --adapt_embed \
+#         --lora \
 #         --outdir ${outdir} \
 #         --dropout ${dropout} \
 #         --description ${description} \
-#         --log_to_wandb
+#        --mgdt_sampling
 
 CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --dataset ${dataset} \
@@ -68,4 +70,6 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --outdir ${outdir} \
         --dropout ${dropout} \
         --description ${description} \
-       --mgdt_sampling
+        --position_embed \
+        --context_dt \
+        --gpt_position_embed \
