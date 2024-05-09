@@ -90,6 +90,8 @@ class ContextDecisionTransformer(TrajectoryModel):
         self.gpt_posiiton_embed = args['gpt_position_embed']
         self.trajectory_example = args['trajectory_example']
         self.insert_tokens = args['insert_tokens']
+        self.prefix_len = args['prefix_len']
+        self.random_prefix = args['random_prefix']
         
         if args["pretrained_lm"] is not None:
             print("Loading from pretrained "+args["pretrained_lm"]+" model")
@@ -203,11 +205,12 @@ class ContextDecisionTransformer(TrajectoryModel):
         self.tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
         self.prefix_tokens = self.tokenizer.tokenize(self.prefix_text)
         self.prefix_ids = torch.LongTensor(self.tokenizer.convert_tokens_to_ids(self.prefix_tokens)).to(args["device"])
-        self.prefix_ids = self.prefix_ids[:1]
+        self.prefix_ids = self.prefix_ids[:self.prefix_len]
         #print(f"{self.prefix_ids.shape=}")
-        #self.prefix_ids = torch.LongTensor(np.arange(40)).to(args["device"])
-        #self.prefix_embedding = nn.Embedding(50, hidden_size)
-        #print(f"2: {self.prefix_ids.shape=}")
+        if self.random_prefix:
+            self.prefix_ids = torch.LongTensor(np.arange(self.prefix_len)).to(args["device"])
+            self.prefix_embedding = nn.Embedding(self.prefix_len + 1, hidden_size)
+            #print(f"2: {self.prefix_ids.shape=}")
 
         self.auxiliary_token = 0
         self.auxiliary_token_before_s = 0
@@ -288,9 +291,12 @@ class ContextDecisionTransformer(TrajectoryModel):
         # print(f"{attention_mask.shape=}") # [64, 20], with prefix: [64, 126]
         # print(f"{attention_mask[0, :]=}")
 
-        prefix_embeddings = self.word_embedding_layer(self.prefix_ids) # [106, 768]
-        #prefix_embeddings = self.prefix_embedding(self.prefix_ids)
-        #print(f"{prefix_embeddings.shape=}")
+        if self.random_prefix:
+            prefix_embeddings = self.prefix_embedding(self.prefix_ids)
+            #print(f"{prefix_embeddings.shape=}")
+        else:
+            prefix_embeddings = self.word_embedding_layer(self.prefix_ids) # [106, 768]
+
         batched_prefix_embeddings = torch.stack([prefix_embeddings for _ in range(batch_size)], dim=0)
         #print(f"{batched_prefix_embeddings.shape=}") # [106, 20, 768]
 

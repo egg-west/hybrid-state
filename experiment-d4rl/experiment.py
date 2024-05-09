@@ -603,6 +603,9 @@ if __name__ == "__main__":
     parser.add_argument("--trajectory_example", action="store_true", default=False)
     parser.add_argument("--visualize_attn", action="store_true", default=False)
     parser.add_argument("--insert_tokens", action="store_true", default=False)
+    parser.add_argument("--prefix_len", type=int, default=40)
+    parser.add_argument("--random_prefix", action="store_true", default=False)
+
 
     # add adaptive rtg
     parser.add_argument("--mgdt_sampling", action="store_true", default=False)
