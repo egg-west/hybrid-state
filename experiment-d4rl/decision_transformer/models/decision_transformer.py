@@ -300,10 +300,24 @@ class DecisionTransformer(TrajectoryModel):
         #print(f"{transformer_outputs['attentions'].keys()}")
         if self.args["visualize_attn"] and transformer_outputs['attentions'][0].shape[-1] == 60:
             #plot attention
+            # transformer_outputs['attentions'] has the shape of [n_layer, batch_size, n_head, seq_len, seq_len]
             target_att = transformer_outputs['attentions'][0][0][0].cpu().detach()
             target_att = target_att[1::3]
             plt.imshow(target_att, cmap="hot")
             plt.savefig("test.png")
+
+            def show_attn_dist(self, attn):
+                # to prove attention matrix distance does not matter!
+                dist = torch.zeros((attn[0].shape[2], attn[0].shape[3]))
+                for i in range(dist.shape[0]):
+                    for j in range(dist.shape[1]):
+                        dist[i][j] = abs(i - j)
+            
+                for i in range(len(attn)):
+                    layer_attn = attn[i].mean(0)[0].detach().cpu()
+                    attn_dist = (layer_attn * dist).mean()
+                    print(f"layer {i} attention distance: {attn_dist}")
+            show_attn_dist(transformer_outputs['attentions'])
             raise NotImplementedError
 
         #print(transformer_outputs.keys())
