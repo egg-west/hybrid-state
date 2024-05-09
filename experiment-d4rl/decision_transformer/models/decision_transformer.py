@@ -306,7 +306,7 @@ class DecisionTransformer(TrajectoryModel):
             plt.imshow(target_att, cmap="hot")
             plt.savefig("test.png")
 
-            def show_attn_dist(self, attn):
+            def show_attn_dist(attn):
                 # to prove attention matrix distance does not matter!
                 dist = torch.zeros((attn[0].shape[2], attn[0].shape[3]))
                 for i in range(dist.shape[0]):
