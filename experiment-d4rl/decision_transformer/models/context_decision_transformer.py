@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -77,6 +78,7 @@ class ContextDecisionTransformer(TrajectoryModel):
         act_dim,
         hidden_size,
         prefix_text,
+        state_description_text,
         max_length=None,
         max_ep_len=4096,
         action_tanh=True,
@@ -84,6 +86,7 @@ class ContextDecisionTransformer(TrajectoryModel):
     ):
         super().__init__(state_dim, act_dim, max_length=max_length)
 
+        self.args = args
         self.hidden_size = hidden_size
         self.do_reprograming = args["reprogram"]
         self.position_embed = args['position_embed']
@@ -184,18 +187,6 @@ class ContextDecisionTransformer(TrajectoryModel):
             )
             self.predict_return = torch.nn.Linear(hidden_size, 1)
 
-        if self.do_reprograming:
-            self.word_embeddings = self.transformer_model.get_input_embeddings().weight.clone().to(args["device"])
-
-            self.vocab_size = self.word_embeddings.shape[0]
-            self.num_tokens = 1000
-            self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-            #self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-            #self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-
-            self.state_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-            #self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-            #self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
 
         self.past_key_values = None
         print(self)
@@ -228,6 +219,16 @@ class ContextDecisionTransformer(TrajectoryModel):
             self.auxiliary_token = 3
             self.auxiliary_token_before_s = 2
 
+        if self.do_reprograming:
+            self.t_embed_state = torch.nn.Linear(self.state_dim, hidden_size)
+            self.state_description_tokens = list(set(self.tokenizer.tokenize(state_description_text)))
+            self.state_description_ids = torch.LongTensor(self.tokenizer.convert_tokens_to_ids(self.state_description_tokens)).to(args["device"])
+    
+            self.state_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+            assert not self.insert_tokens
+            self.auxiliary_token = 1
+            self.auxiliary_token_before_s = 1
+
         if self.trajectory_example:
             #self.example_embed_timestep = nn.Embedding(max_ep_len, hidden_size)
             self.example_start_text = "<|start_examples|>"
@@ -241,6 +242,9 @@ class ContextDecisionTransformer(TrajectoryModel):
         self.tuple_len = 3 + self.auxiliary_token
         self.action_index = 1 + self.auxiliary_token_before_s
         # insert token R {R} s {s} a {a}, will make it 6
+
+        self.visualize_count = 0
+        self.VISUALIZE_MAX = 4
 
     def forward(
         self,
@@ -320,19 +324,6 @@ class ContextDecisionTransformer(TrajectoryModel):
         # print(f"{state_embeddings.shape=}, {time_embeddings.shape=}")
         ## both are ([64, 20, 768])
 
-        # if self.do_reprograming:
-        #     state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        #     abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
-        #     state_embeddings += abstract_state_embeddings
-
-        #     action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        #     abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
-        #     action_embeddings += abstract_action_embeddings
-
-        #     returns_prototype_embeddings = self.returns_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-        #     abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, returns_prototype_embeddings, returns_prototype_embeddings)
-        #     returns_embeddings += abstract_returns_embeddings
-
         # print(f"{prototype_embeddings.shape=}, {abstract_state_embedding.shape=}")
         ## [1000, 768]), abstract_state_embedding.shape=torch.Size([64, 20, 768])
 
@@ -361,6 +352,23 @@ class ContextDecisionTransformer(TrajectoryModel):
                 .permute(0, 2, 1, 3)
                 .reshape(batch_size, (3 + self.auxiliary_token) * seq_length, self.hidden_size)
             )
+        elif self.do_reprograming:
+            t_state_embeddings = self.t_embed_state(states)
+            state_prototype_embeddings = self.word_embedding_layer(self.state_description_ids)
+
+            #print(f"{t_state_embeddings.shape=}, {state_prototype_embeddings.shape=}") # [64, 25, 768]
+            abstract_state_embeddings = self.state_abstraction_layer(t_state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+            #print(f"{state_embeddings.shape=}, {abstract_state_embeddings.shape=}")
+            stacked_inputs = (
+                torch.stack(
+                    (returns_embeddings,
+                    state_embeddings,
+                    abstract_state_embeddings,
+                    action_embeddings), dim=1
+                )
+                .permute(0, 2, 1, 3)
+                .reshape(batch_size, (3 + self.auxiliary_token) * seq_length, self.hidden_size)
+            )
         else:
             stacked_inputs = (
                 torch.stack(
@@ -371,12 +379,6 @@ class ContextDecisionTransformer(TrajectoryModel):
                 .permute(0, 2, 1, 3)
                 .reshape(batch_size, 3 * seq_length, self.hidden_size)
             )
-
-        if self.do_reprograming:
-            state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
-            abstract_stacked_inputs = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
-            stacked_inputs = abstract_stacked_inputs
-        #abstract_embedding = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
 
         # to make the attention mask fit the stacked inputs, have to stack it as well
         stacked_attention_mask = (
@@ -445,8 +447,22 @@ class ContextDecisionTransformer(TrajectoryModel):
             past_key_values=None,  # self.past_key_values,
             use_cache=True,
             to_add_position_embeds=self.gpt_posiiton_embed,
+            output_attentions=True,
         )
         x = transformer_outputs["last_hidden_state"][:, token_wise_threshold:, :]
+        if self.args["visualize_attn"] and transformer_outputs['attentions'][0].shape[-1] == self.args["K"] * (3+self.auxiliary_token) + self.prefix_len:
+            #plot attention
+
+            # transformer_outputs['attentions'] has the shape of tuple(Tensor[batch_size, n_head, seq_len, seq_len]) * n_layer
+            for h in range(12): # different heads
+                target_att = transformer_outputs['attentions'][0][0][h].cpu().detach()
+                target_att = target_att[(self.prefix_len + self.action_index)::(3+self.auxiliary_token)]
+                plt.imshow(target_att, cmap="hot")
+                plt.savefig(f"test_cdt_heads{h}_{self.visualize_count}.png", dpi=300)
+
+            self.visualize_count += 1
+            if self.visualize_count >= self.VISUALIZE_MAX:
+                raise NotImplementedError
         self.past_key_values = transformer_outputs["past_key_values"]
         #print(f"{x.shape=}")# [64, 60, 768]
 

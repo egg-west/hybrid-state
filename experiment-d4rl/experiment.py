@@ -91,8 +91,11 @@ def experiment(
     else:
         raise NotImplementedError
     
-    with open(f"./decision_transformer/prefix/{env_name}.txt", "r") as f:
+    with open(f"./decision_transformer/text/prefix/{env_name}.txt", "r") as f:
             prefix_text = f.read().replace("\n", "")
+
+    with open(f"./decision_transformer/text/state_description/{env_name}.txt", "r") as f:
+            state_description_text = f.read().replace("\n", "")
 
     if model_type == "bc":
         env_targets = env_targets[
@@ -347,6 +350,7 @@ def experiment(
                 attn_pdrop=0.1,
                 mlp_embedding=variant["mlp_embedding"],
                 prefix_text=prefix_text,
+                state_description_text=state_description_text,
             )
         else:
             model = DecisionTransformer(

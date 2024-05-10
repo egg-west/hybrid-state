@@ -52,5 +52,8 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --context_dt \
         --prefix_len 1 \
         --gpt_position_embed \
-        --reprogram \
-       --log_to_wandb \
+        --eval_only \
+        --insert_tokens \
+       --visualize_attn \
+       --path_to_load "checkpoints/hopper_medium_gpt2_pretrained-ratio=1_insert_token_0/model_40.pt"
+#       --path_to_load "checkpoints/hopper_medium_gpt2_pretrained-ratio=1_randPrefix80_0/model_50.pt"

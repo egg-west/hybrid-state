@@ -1,0 +1,1 @@
+z-coordinate of the torso (height of hopper), angle of the torso, thigh joint, leg joint, angle of the foot joint, velocity of the x-coordinate of the torso, velocity of the z-coordinate (height) of the torso, angular velocity of the angle of the torso, angular velocity of the thigh hinge, angular velocity of the leg hinge, angular velocity of the foot hinge.

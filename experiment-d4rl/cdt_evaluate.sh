@@ -28,6 +28,7 @@ description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
 gpu=${6}
 outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
 
+
 CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --dataset ${dataset} \
         --model_type ${model_type} \
@@ -50,7 +51,7 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --description ${description} \
         --position_embed \
         --context_dt \
-        --prefix_len 1 \
+        --prefix_len 80 \
         --gpt_position_embed \
-        --reprogram \
-       --log_to_wandb \
+        --eval_only \
+       --path_to_load "checkpoints/hopper_medium_gpt2_pretrained-ratio=1_randPrefix80_0/model_50.pt"
