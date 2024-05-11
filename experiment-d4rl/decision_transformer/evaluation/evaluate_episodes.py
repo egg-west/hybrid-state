@@ -215,17 +215,20 @@ def parallel_evaluate_episode_rtg(
 
     t, done_flags = 0, np.zeros(num_envs, dtype=bool)
     episode_returns, episode_lens = np.zeros(num_envs), np.zeros(num_envs)
+    heatmap_list = []
     while not done_flags.all() and t < max_timesteps:
         actions = torch.cat([actions, torch.zeros((num_envs, 1, act_dim), device=device)], dim=1)
         rewards = torch.cat([rewards, torch.zeros((num_envs, 1), device=device)], dim=1)
 
-        _, action, rtg_prediction, _ = model.forward(
+        _, action, rtg_prediction, attn_hm = model.forward(
             ((states[:, -context_len:, :].to(dtype=torch.float32) - state_mean) / state_std),
             actions[:, -context_len:, :].to(dtype=torch.float32),
             rewards.to(dtype=torch.float32),
             target_returns[:, -context_len:, :].to(dtype=torch.float32),
             timesteps[:, -context_len:].to(dtype=torch.long),
         )
+        if args["visualize_attn"]:
+            heatmap_list.append(attn_hm)
 
         if args["mgdt_sampling"]:
             opt_rtg = decode_return(
@@ -271,4 +274,21 @@ def parallel_evaluate_episode_rtg(
         )
         t += 1
 
+    # if n_envs == 1, iterate heat_map, get the last line for the attention
+    # calculate intra-time-step interaction, inter-time-step interaction for all time step, for only full contex len data
+    if args["visualize_attn"]:
+        last_row_list = []
+        for hm_all in heatmap_list:
+            hm = hm_all[0][0][0] # get the first layer and the first head
+            if hm.shape[-1] == 60:
+                last_row = hm[-1, :]
+                cum_last_row = torch.cumsum(last_row[:-1:-1]) # get rid of the last action, which is a zero tensor
+                step_wise_hm = cum_last_row[1::3] # step_wise_hm should be [20]
+                print(f"{step_wise_hm.shape=}")
+                last_row_list.append(step_wise_hm)
+        if (len(last_row_list) > 0):
+            final_last_row = sum(last_row_list) / len(last_row_list)
+            print(f"{final_last_row=}")
+        else:
+            print(f"{len(heatmap_list)=}")
     return episode_returns, episode_lens

@@ -152,7 +152,7 @@ class DecisionTransformer(TrajectoryModel):
             self.embed_state = ResidualBlock(self.state_dim, hidden_size)
             self.embed_action = ResidualBlock(self.act_dim, hidden_size)
         else:
-            self.embed_return = torch.nn.Linear(1, hidden_size)
+            self.embed_return = torch.nn.Linear(1, 32)
             self.embed_state = torch.nn.Linear(self.state_dim, hidden_size)
             self.embed_action = torch.nn.Linear(self.act_dim, hidden_size)
 
@@ -175,7 +175,7 @@ class DecisionTransformer(TrajectoryModel):
             self.predict_state = torch.nn.Linear(hidden_size, self.state_dim)
             self.predict_action = nn.Sequential(
                 *(
-                    [nn.Linear(hidden_size, self.act_dim)]
+                    [nn.Linear(hidden_size + 32, self.act_dim)]
                     + ([nn.Tanh()] if action_tanh else [])
                 )
             )
@@ -263,10 +263,10 @@ class DecisionTransformer(TrajectoryModel):
 
         stacked_inputs = (
             torch.stack(
-                (state_embeddings, returns_embeddings, action_embeddings), dim=1
+                (state_embeddings, action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)
-            .reshape(batch_size, 3 * seq_length, self.hidden_size)
+            .reshape(batch_size, 2 * seq_length, self.hidden_size)
         )
         #abstract_embedding = self.state_abstraction_layer(stacked_inputs, state_prototype_embeddings, state_prototype_embeddings)
 
@@ -274,15 +274,15 @@ class DecisionTransformer(TrajectoryModel):
         all_embs = self.embed_ln(stacked_inputs)
 
         if self.position_embed:
-            stacked_inputs = all_embs + time_embeddings.repeat_interleave(3, dim=1)
+            stacked_inputs = all_embs + time_embeddings.repeat_interleave(2, dim=1)
         else:
             stacked_inputs = all_embs
 
         # to make the attention mask fit the stacked inputs, have to stack it as well
         stacked_attention_mask = (
-            torch.stack((attention_mask, attention_mask, attention_mask), dim=1)
+            torch.stack((attention_mask, attention_mask), dim=1)
             .permute(0, 2, 1)
-            .reshape(batch_size, 3 * seq_length)
+            .reshape(batch_size, 2 * seq_length)
         )
 
         # we feed in the input embeddings (not word indices as in NLP) to the model
@@ -297,40 +297,46 @@ class DecisionTransformer(TrajectoryModel):
         x = transformer_outputs["last_hidden_state"]
         #print(f"{type(transformer_outputs['attentions'][0])}") # tuple
         #print(f"{transformer_outputs['attentions'][0].shape}") # 12
-        #print(f"{transformer_outputs['attentions'].keys()}")
-        if self.args["visualize_attn"] and transformer_outputs['attentions'][0].shape[-1] == 60:
-            #plot attention
-            # transformer_outputs['attentions'] has the shape of [n_layer, batch_size, n_head, seq_len, seq_len]
-            target_att = transformer_outputs['attentions'][0][0][0].cpu().detach()
-            target_att = target_att[1::3]
-            plt.imshow(target_att, cmap="hot")
-            plt.savefig("test.png")
+        # transformer_outputs['attentions'] has the shape of [n_layer, batch_size, n_head(12), seq_len, seq_len]
 
-            def show_attn_dist(attn):
-                # to prove attention matrix distance does not matter!
-                dist = torch.zeros((attn[0].shape[2], attn[0].shape[3]))
-                for i in range(dist.shape[0]):
-                    for j in range(dist.shape[1]):
-                        dist[i][j] = abs(i - j)
-            
-                for i in range(len(attn)):
-                    layer_attn = attn[i].mean(0)[0].detach().cpu()
-                    attn_dist = (layer_attn * dist).mean()
-                    print(f"layer {i} attention distance: {attn_dist}")
-            show_attn_dist(transformer_outputs['attentions'])
-            raise NotImplementedError
+        # visualizing attention heatmaps
+        # if self.args["visualize_attn"] and transformer_outputs['attentions'][0].shape[-1] == 60:
+        #     n_layers = len(transformer_outputs['attentions'])
+        #     ### Plot the whole heatmap
+        #     # target_att = transformer_outputs['attentions'][0][0][0].cpu().detach()
+        #     # target_att = target_att[1::3]
+        #     # plt.imshow(target_att, cmap="hot")
+        #     # plt.savefig("test.png")
+
+        #     # def show_attn_dist(attn):
+        #     #     # to prove attention matrix distance does not matter!
+        #     #     dist = torch.zeros((attn[0].shape[2], attn[0].shape[3]))
+        #     #     for i in range(dist.shape[0]):
+        #     #         for j in range(dist.shape[1]):
+        #     #             dist[i][j] = abs(i - j)
+
+        #     #     for i in range(len(attn)):
+        #     #         layer_attn = attn[i].mean(0)[0].detach().cpu()
+        #     #         attn_dist = (layer_attn * dist).mean()
+        #     #         print(f"layer {i} attention distance: {attn_dist}")
+        #     #show_attn_dist(transformer_outputs['attentions'])
+        #     raise NotImplementedError
 
         #print(transformer_outputs.keys())
         self.past_key_values = transformer_outputs["past_key_values"]
 
         # reshape x so that the second dimension corresponds to the original
         # returns (0), states (1), or actions (2); i.e. x[:,1,t] is the token for s_t
-        x = x.reshape(batch_size, seq_length, 3, self.hidden_size).permute(0, 2, 1, 3)
+        x = x.reshape(batch_size, seq_length, 2, self.hidden_size).permute(0, 2, 1, 3)
 
         observation_preds = None
-        action_preds = self.predict_action(x[:, 1])  # predict next action given state
-        rgt_preds = self.predict_rtg(x[:, 0])
-        return observation_preds, action_preds, rgt_preds, None
+        #print(f"{returns_embeddings.shape=}, {x[:, 0].shape=}")
+        output = torch.cat([returns_embeddings, x[:, 0]], dim=-1)
+        #print(f"{output.shape=}")
+        action_preds = self.predict_action(output)  # predict next action given state
+        #rgt_preds = self.predict_rtg(x[:, 0])
+        rgt_preds = None
+        return observation_preds, action_preds, rgt_preds, transformer_outputs['attentions']
 
     def get_action(
         self,

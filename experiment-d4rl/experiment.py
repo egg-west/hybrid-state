@@ -55,21 +55,21 @@ def experiment(
 
     if env_name == "hopper":
         env = gym.make(f"hopper-{dataset}-v2")
-        test_env = gym.vector.make(f"hopper-{dataset}-v2", num_envs=20)
+        test_env = gym.vector.make(f"hopper-{dataset}-v2", num_envs=variant["n_envs"])
         max_ep_len = 1000
         #env_targets = [3600, 2600, 2200, 1800]  # evaluation conditioning targets
         env_targets = [3600, 2600]  # evaluation conditioning targets
         scale = 1000.0  # normalization for rewards/returns
     elif env_name == "halfcheetah":
         env = gym.make(f"halfcheetah-{dataset}-v2")
-        test_env = gym.vector.make(f"halfcheetah-{dataset}-v2", num_envs=20)
+        test_env = gym.vector.make(f"halfcheetah-{dataset}-v2", num_envs=variant["n_envs"])
         max_ep_len = 1000
         #env_targets = [12000, 8000, 6000, 4500]
         env_targets = [12000, 8000, 6000]
         scale = 1000.0
     elif env_name == "walker2d":
         env = gym.make(f"walker2d-{dataset}-v2")
-        test_env = gym.vector.make(f"walker2d-{dataset}-v2", num_envs=20)
+        test_env = gym.vector.make(f"walker2d-{dataset}-v2", num_envs=variant["n_envs"])
         max_ep_len = 1000
         #env_targets = [5000, 4000, 3000, 2500]
         env_targets = [5000, 4000,]
@@ -83,7 +83,7 @@ def experiment(
         scale = 10.
     elif env_name == "kitchen":
         env = gym.make(f"kitchen-{dataset}-v0")
-        test_env = gym.vector.make(f"kitchen-{dataset}-v0", num_envs=20)
+        test_env = gym.vector.make(f"kitchen-{dataset}-v0", num_envs=variant["n_envs"])
         max_ep_len = 1000
         #env_targets = [5, 4, 3, 2, 1]
         env_targets = [5, 4, 3,]
@@ -211,7 +211,7 @@ def experiment(
                 np.concatenate([np.zeros((1, max_len - tlen, 1)), rtg[-1]], axis=1)
                 / scale
             )
-            
+
             timesteps[-1] = np.concatenate(
                 [np.zeros((1, max_len - tlen)), timesteps[-1]], axis=1
             )
@@ -225,7 +225,7 @@ def experiment(
             float_dtype = torch.float16
         else:
             float_dtype = torch.float32
-        
+
         s = torch.from_numpy(np.concatenate(s, axis=0)).to(
             dtype=float_dtype, device=device
         )
@@ -254,7 +254,10 @@ def experiment(
             os.makedirs(os.path.join(variant["outdir"], "videos", str(target_rew)), exist_ok=True)
             #for episode_index in range(num_eval_episodes):
             for episode_index in range(1):
-                record_video = (episode_index % (num_eval_episodes // 5) == 0) & visualize
+                if (num_eval_episodes // 5) > 0:
+                    record_video = (episode_index % (num_eval_episodes // 5) == 0) & visualize
+                else:
+                    record_video = False
                 # if dir doesn't exist, make it
                 if record_video:
                     video_path = os.path.join(
@@ -550,6 +553,7 @@ if __name__ == "__main__":
     # data sampling
     parser.add_argument("--sample_ratio", type=float, default=1.0)
     parser.add_argument("--data_suffix", type=str, default="d1")
+    parser.add_argument("--n_envs", type=int, default=20)
     # training
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument("--log_to_wandb", "-w", action="store_true", default=False)

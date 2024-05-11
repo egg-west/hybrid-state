@@ -1,5 +1,6 @@
 import numpy as np
 import math
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -83,6 +84,7 @@ class DecisionTransformer(TrajectoryModel):
     ):
         super().__init__(state_dim, act_dim, max_length=max_length)
 
+        self.args = args
         self.hidden_size = hidden_size
         self.do_reprograming = args["reprogram"]
         self.position_embed = args['position_embed']
@@ -184,13 +186,17 @@ class DecisionTransformer(TrajectoryModel):
             self.vocab_size = self.word_embeddings.shape[0]
             self.num_tokens = 1000
             self.state_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-            self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
-            self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+            #self.action_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
+            #self.returns_prototype_mapping = nn.Linear(self.vocab_size, self.num_tokens)
 
             self.state_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-            self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
-            self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+            #self.action_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
+            #self.returns_abstraction_layer = StateAbstractionLayer(d_model=hidden_size, n_heads=8, d_keys=None, d_llm=hidden_size)
 
+        if args["mgdt_sampling"]:
+            self.predict_rtg = torch.nn.Linear(hidden_size, int(args["num_bins"]))
+        else:
+            self.predict_rtg = lambda x: None
         self.past_key_values = None
         print(self)
 
@@ -206,12 +212,10 @@ class DecisionTransformer(TrajectoryModel):
         test=False,
     ):
         # print(f"{states.shape=}, {actions.shape=}, {rewards.shape=}, {returns_to_go.shape=}")
-        ## states.shape=torch.Size([64, 20, 11]),
-        ## actions.shape=torch.Size([64, 20, 3]),
+        ## states [64, 20, 11]
+        ## actions [64, 20, 3]
         ## rewards.shape=torch.Size([64, 20, 1]),
         ## returns_to_go.shape=torch.Size([64, 20, 1])
-        #if attention_mask != None:
-        #    print(f"{attention_mask.shape=}")
 
         batch_size, seq_length = states.shape[0], states.shape[1]
 
@@ -231,7 +235,13 @@ class DecisionTransformer(TrajectoryModel):
         if self.do_reprograming:
             state_prototype_embeddings = self.state_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
             abstract_state_embeddings = self.state_abstraction_layer(state_embeddings, state_prototype_embeddings, state_prototype_embeddings)
-            state_embeddings += abstract_state_embeddings
+            state_embeddings = abstract_state_embeddings
+
+            abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+            action_embeddings = abstract_action_embeddings
+
+            abstract_returns_embeddings = self.returns_abstraction_layer(returns_embeddings, state_prototype_embeddings, state_prototype_embeddings)
+            returns_embeddings = abstract_returns_embeddings
 
             # action_prototype_embeddings = self.action_prototype_mapping(self.word_embeddings.permute(1, 0)).permute(1, 0)
             # abstract_action_embeddings = self.action_abstraction_layer(action_embeddings, action_prototype_embeddings, action_prototype_embeddings)
@@ -253,7 +263,7 @@ class DecisionTransformer(TrajectoryModel):
 
         stacked_inputs = (
             torch.stack(
-                (returns_embeddings, state_embeddings, action_embeddings), dim=1
+                (state_embeddings, returns_embeddings, action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)
             .reshape(batch_size, 3 * seq_length, self.hidden_size)
@@ -282,8 +292,35 @@ class DecisionTransformer(TrajectoryModel):
             past_key_values=None,  # self.past_key_values,
             use_cache=True,
             to_add_position_embeds=self.gpt_posiiton_embed,
+            output_attentions=True,
         )
         x = transformer_outputs["last_hidden_state"]
+        #print(f"{type(transformer_outputs['attentions'][0])}") # tuple
+        #print(f"{transformer_outputs['attentions'][0].shape}") # 12
+        #print(f"{transformer_outputs['attentions'].keys()}")
+        if self.args["visualize_attn"] and transformer_outputs['attentions'][0].shape[-1] == 60:
+            #plot attention
+            # transformer_outputs['attentions'] has the shape of [n_layer, batch_size, n_head(12), seq_len, seq_len]
+            target_att = transformer_outputs['attentions'][0][0][0].cpu().detach()
+            target_att = target_att[1::3]
+            plt.imshow(target_att, cmap="hot")
+            plt.savefig("test.png")
+
+            def show_attn_dist(attn):
+                # to prove attention matrix distance does not matter!
+                dist = torch.zeros((attn[0].shape[2], attn[0].shape[3]))
+                for i in range(dist.shape[0]):
+                    for j in range(dist.shape[1]):
+                        dist[i][j] = abs(i - j)
+            
+                for i in range(len(attn)):
+                    layer_attn = attn[i].mean(0)[0].detach().cpu()
+                    attn_dist = (layer_attn * dist).mean()
+                    print(f"layer {i} attention distance: {attn_dist}")
+            show_attn_dist(transformer_outputs['attentions'])
+            raise NotImplementedError
+
+        #print(transformer_outputs.keys())
         self.past_key_values = transformer_outputs["past_key_values"]
 
         # reshape x so that the second dimension corresponds to the original
@@ -292,7 +329,8 @@ class DecisionTransformer(TrajectoryModel):
 
         observation_preds = None
         action_preds = self.predict_action(x[:, 1])  # predict next action given state
-        return observation_preds, action_preds, None, None
+        rgt_preds = self.predict_rtg(x[:, 0])
+        return observation_preds, action_preds, rgt_preds, None
 
     def get_action(
         self,

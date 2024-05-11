@@ -6,12 +6,12 @@ lr=1e-4 # default is 1e-4
 lmlr=1e-5 # default is lr
 weight_decay=1e-5 # default is 1e-4
 dropout=0.1
-# warmup_steps=2500 # default is 10000
-# num_steps_per_iter=2500 # default is 2500
-warmup_steps=10
-num_steps_per_iter=10
-max_iters=60 # default is 40
-num_eval_episodes=20 # default is 100
+warmup_steps=1 # default is 10000
+num_steps_per_iter=1 # default is 2500
+# warmup_steps=10
+# num_steps_per_iter=10
+max_iters=1 # default is 40
+num_eval_episodes=1 # default is 100
 
 env=${1}
 if [ "$env" == "reacher2d" ]; then
@@ -27,6 +27,7 @@ seed=${5}
 description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
 gpu=${6}
 outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
+#K=${7}
 
 # CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
 #         --dataset ${dataset} \
@@ -43,12 +44,10 @@ outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
 #         --warmup_steps ${warmup_steps} \
 #         --pretrained_lm ${pretrained_lm} \
 #         --adapt_mode \
-#         --adapt_embed \
-#         --lora \
 #         --outdir ${outdir} \
 #         --dropout ${dropout} \
 #         --description ${description} \
-#        --mgdt_sampling
+#         --log_to_wandb
 
 CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --dataset ${dataset} \
@@ -70,4 +69,7 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --outdir ${outdir} \
         --dropout ${dropout} \
         --description ${description} \
-        --position_embed \
+       --eval_only \
+       --position_embed \
+       --visualize_attn \
+#       --path_to_load "checkpoints/hopper_medium-expert_gpt2_pretrained-ratio=1_Lamo_0/model_40.pt"

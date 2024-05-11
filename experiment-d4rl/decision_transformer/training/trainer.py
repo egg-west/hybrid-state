@@ -42,9 +42,11 @@ class Trainer:
 
     def train_iteration(self, num_steps, iter_num=0, print_logs=False):
         if self.eval_only and not self.args["eval_all_checkpoints"]:
-            self.model.load_state_dict(
-                torch.load(self.args["path_to_load"])
-            )
+            # load only one checkpoints instead of all traning checkpoints
+            if self.args["path_to_load"] != "":
+                self.model.load_state_dict(
+                    torch.load(self.args["path_to_load"])
+                )
 
         train_losses = []
         # lm_losses = []
@@ -70,7 +72,7 @@ class Trainer:
                 logs["training/train_loss_std"] = np.std(train_losses)
                 # logs["training/lm_loss_mean"] = np.mean(lm_losses)
                 # logs["training/lm_loss_std"] = np.std(lm_losses)
-                
+
                 progress_bar.set_postfix({"loss": logs["training/train_loss_mean"], "lr": self.optimizer.param_groups[0]['lr']})
                 
 
