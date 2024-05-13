@@ -263,7 +263,7 @@ class DecisionTransformer(TrajectoryModel):
 
         stacked_inputs = (
             torch.stack(
-                (state_embeddings, returns_embeddings, action_embeddings), dim=1
+                (returns_embeddings, state_embeddings, action_embeddings), dim=1
             )
             .permute(0, 2, 1, 3)
             .reshape(batch_size, 3 * seq_length, self.hidden_size)
@@ -293,8 +293,11 @@ class DecisionTransformer(TrajectoryModel):
             use_cache=True,
             to_add_position_embeds=self.gpt_posiiton_embed,
             output_attentions=True,
+            output_hidden_states=True,
         )
-        x = transformer_outputs["last_hidden_state"]
+        #x = transformer_outputs["last_hidden_state"]
+        x = transformer_outputs["hidden_states"][2]
+
         #print(f"{type(transformer_outputs['attentions'][0])}") # tuple
         #print(f"{transformer_outputs['attentions'][0].shape}") # 12
         #print(f"{transformer_outputs['attentions'].keys()}")
@@ -329,8 +332,8 @@ class DecisionTransformer(TrajectoryModel):
 
         observation_preds = None
         action_preds = self.predict_action(x[:, 1])  # predict next action given state
-        rgt_preds = self.predict_rtg(x[:, 0])
-        return observation_preds, action_preds, rgt_preds, transformer_outputs['attentions']
+        #rgt_preds = self.predict_rtg(x[:, 0])
+        return observation_preds, action_preds, None, transformer_outputs['attentions']
 
     def get_action(
         self,

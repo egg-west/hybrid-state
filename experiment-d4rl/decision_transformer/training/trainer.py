@@ -44,6 +44,7 @@ class Trainer:
         if self.eval_only and not self.args["eval_all_checkpoints"]:
             # load only one checkpoints instead of all traning checkpoints
             if self.args["path_to_load"] != "":
+                print(f'loading model from {self.args["path_to_load"]}')
                 self.model.load_state_dict(
                     torch.load(self.args["path_to_load"])
                 )

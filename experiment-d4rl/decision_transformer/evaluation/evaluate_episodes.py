@@ -277,18 +277,38 @@ def parallel_evaluate_episode_rtg(
     # if n_envs == 1, iterate heat_map, get the last line for the attention
     # calculate intra-time-step interaction, inter-time-step interaction for all time step, for only full contex len data
     if args["visualize_attn"]:
-        last_row_list = []
-        for hm_all in heatmap_list:
-            hm = hm_all[0][0][0] # get the first layer and the first head
-            if hm.shape[-1] == 60:
-                last_row = hm[-1, :]
-                cum_last_row = torch.cumsum(last_row[:-1:-1]) # get rid of the last action, which is a zero tensor
-                step_wise_hm = cum_last_row[1::3] # step_wise_hm should be [20]
-                print(f"{step_wise_hm.shape=}")
-                last_row_list.append(step_wise_hm)
-        if (len(last_row_list) > 0):
-            final_last_row = sum(last_row_list) / len(last_row_list)
-            print(f"{final_last_row=}")
-        else:
-            print(f"{len(heatmap_list)=}")
+        #print(f"{heatmap_list[0][0].shape=}")
+        print(f"{len(heatmap_list[0])=}") # 12
+        print(f"{heatmap_list[0][0].shape=}")
+
+        all_layer_list = []
+        n_head = heatmap_list[0][0].shape[1]
+        for kk in range(12): # n_layer
+            print(f"n_layer {kk}")
+
+            ret_list = []
+            for i in range(12): # iterate through heads
+
+                last_row_list = []
+                for hm_all in heatmap_list:
+                    #print(f"{hm_all[0].shape=}") # bs, n_head, seq, seq
+                    hm = hm_all[kk][0][i] # get the first layer and the first head
+
+                    if hm.shape[-1] == 60:
+                        last_row = hm[-2, :]
+
+                        cum_last_row = np.cumsum(last_row.detach().cpu().numpy()[::-1]) # get rid of the last action, which is a zero tensor
+                        step_wise_hm = cum_last_row[2::3] # step_wise_hm should be [20]
+
+                        last_row_list.append(step_wise_hm)
+                if (len(last_row_list) > 0):
+                    final_last_row = sum(last_row_list) / len(last_row_list)
+                    ret_list.append(final_last_row)
+                    #print(f"{final_last_row=}")
+                else:
+                    print(f"{len(heatmap_list)=}")
+
+            all_layer_list.append(ret_list)
+        np.set_printoptions(threshold=sys.maxsize)
+        print(repr(np.array(all_layer_list)))
     return episode_returns, episode_lens
