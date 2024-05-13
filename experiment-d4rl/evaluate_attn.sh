@@ -72,4 +72,4 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
        --eval_only \
        --position_embed \
        --visualize_attn \
-       --path_to_load "checkpoints/hopper_medium-expert_gpt2_pretrained-ratio=1_Lamo_0/model_40.pt"
+       --path_to_load "checkpoints/hopper_medium_gpt2_pretrained-ratio=1_useH3_0/model_50.pt"

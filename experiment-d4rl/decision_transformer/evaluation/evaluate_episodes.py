@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import torch
 import imageio
@@ -277,13 +278,14 @@ def parallel_evaluate_episode_rtg(
     # if n_envs == 1, iterate heat_map, get the last line for the attention
     # calculate intra-time-step interaction, inter-time-step interaction for all time step, for only full contex len data
     if args["visualize_attn"]:
-        #print(f"{heatmap_list[0][0].shape=}")
-        print(f"{len(heatmap_list[0])=}") # 12
+        # heatmap_list is a Tuple[Tensor], its length is n_layers; each heatmap is a Tensor [batch, n_head, seq_len, seq_len]
+
+        print(f"{len(heatmap_list[0])=}") # 12 layers
         print(f"{heatmap_list[0][0].shape=}")
 
         all_layer_list = []
         n_head = heatmap_list[0][0].shape[1]
-        for kk in range(12): # n_layer
+        for kk in range(4): # n_layer
             print(f"n_layer {kk}")
 
             ret_list = []
