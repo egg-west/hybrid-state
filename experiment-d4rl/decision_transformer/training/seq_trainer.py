@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -43,6 +44,62 @@ class SequenceTrainer(Trainer):
                 e_timesteps,
                 attention_mask=attention_mask,
             )
+        elif self.args["visualize_attn"] and not self.args["eval_only"]:
+            (
+                states,
+                actions,
+                rewards,
+                dones,
+                rtg,
+                timesteps,
+                attention_mask,
+            ) = self.get_test_batch(1)
+
+            action_target = torch.clone(actions)
+
+            observation_preds, action_preds, rtg_preds, heatmap_list = self.model.forward(
+                states,
+                actions,
+                rewards,
+                rtg[:, :-1],
+                timesteps,
+                attention_mask=attention_mask,
+            )
+
+            print(f"{heatmap_list[0].shape=}") # [N, 12, seq_len, seq_len]
+            all_layer_list = []
+
+            n_head = heatmap_list[0][0].shape[1]
+            for layer_id in range(1): # n_layer
+
+                ret_list = []
+                for head_id in range(12): # iterate through heads
+
+                    last_row_list = []
+                    episode_len = heatmap_list[0].shape[0]
+                    for time_step in range(episode_len): # iterate through episode
+                        #print(f"{hm_all[0].shape=}") # bs, n_head, seq, seq
+                        hm = heatmap_list[layer_id][time_step][head_id] # get the first layer and the first head
+
+                        if hm.shape[-1] == 60:
+                            last_row = hm[-2, :]
+
+                            cum_last_row = np.cumsum(last_row.detach().cpu().numpy()[::-1]) # get rid of the last action, which is a zero tensor
+                            step_wise_hm = cum_last_row[2::3] # step_wise_hm should be [20]
+
+                            last_row_list.append(step_wise_hm)
+                    if (len(last_row_list) > 0):
+                        final_last_row = sum(last_row_list) / len(last_row_list)
+                        ret_list.append(final_last_row)
+                        #print(f"{final_last_row=}")
+                    else:
+                        print(f"{len(heatmap_list)=}")
+
+                all_layer_list.append(ret_list)
+            np.set_printoptions(threshold=sys.maxsize)
+            print(repr(np.array(all_layer_list)))
+            raise NotImplementedError
+
         else:
             (
                 states,

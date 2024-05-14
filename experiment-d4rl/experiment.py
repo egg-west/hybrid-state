@@ -248,6 +248,90 @@ def experiment(
 
         return s, a, r, d, rtg, timesteps, mask
 
+    def get_test_batch(batch_size=1, max_len=K, trajectory_index=9):
+
+        assert type(trajectory_index) == int
+        batch_inds = np.array([trajectory_index])
+
+        s, a, r, d, rtg, timesteps, mask = [], [], [], [], [], [], []
+        traj = trajectories[int(sorted_inds[batch_inds[0]])]
+        for si in range(0, traj["rewards"].shape[0] - max_len):
+            #for i in range(batch_size):
+            # traj = trajectories[int(sorted_inds[batch_inds[i]])]
+            #si = random.randint(0, traj["rewards"].shape[0] - 1)
+
+            # get sequences from dataset
+            s.append(traj["observations"][si : si + max_len].reshape(1, -1, state_dim))
+            a.append(traj["actions"][si : si + max_len].reshape(1, -1, act_dim))
+            r.append(traj["rewards"][si : si + max_len].reshape(1, -1, 1))
+            if "terminals" in traj:
+                d.append(traj["terminals"][si : si + max_len].reshape(1, -1))
+            else:
+                d.append(traj["dones"][si : si + max_len].reshape(1, -1))
+            timesteps.append(np.arange(si, si + s[-1].shape[1]).reshape(1, -1))
+            timesteps[-1][timesteps[-1] >= max_ep_len] = (
+                max_ep_len - 1
+            )  # padding cutoff
+            rtg.append(
+                discount_cumsum(traj["rewards"][si:], gamma=1.0)[
+                    : s[-1].shape[1] + 1
+                ].reshape(1, -1, 1)
+            )
+            if rtg[-1].shape[1] <= s[-1].shape[1]:
+                rtg[-1] = np.concatenate([rtg[-1], np.zeros((1, 1, 1))], axis=1)
+
+            # padding and state + reward normalization
+            tlen = s[-1].shape[1]
+            s[-1] = np.concatenate(
+                [np.zeros((1, max_len - tlen, state_dim)), s[-1]], axis=1
+            )
+            s[-1] = (s[-1] - state_mean) / state_std
+            a[-1] = np.concatenate(
+                [np.ones((1, max_len - tlen, act_dim)) * -10.0, a[-1]], axis=1
+            )
+            r[-1] = np.concatenate([np.zeros((1, max_len - tlen, 1)), r[-1]], axis=1)
+            d[-1] = np.concatenate([np.ones((1, max_len - tlen)) * 2, d[-1]], axis=1)
+            rtg[-1] = (
+                np.concatenate([np.zeros((1, max_len - tlen, 1)), rtg[-1]], axis=1)
+                / scale
+            )
+
+            timesteps[-1] = np.concatenate(
+                [np.zeros((1, max_len - tlen)), timesteps[-1]], axis=1
+            )
+            mask.append(
+                np.concatenate(
+                    [np.zeros((1, max_len - tlen)), np.ones((1, tlen))], axis=1
+                )
+            )
+
+        if variant["fp16"] == True:
+            float_dtype = torch.float16
+        else:
+            float_dtype = torch.float32
+
+        s = torch.from_numpy(np.concatenate(s, axis=0)).to(
+            dtype=float_dtype, device=device
+        )
+        a = torch.from_numpy(np.concatenate(a, axis=0)).to(
+            dtype=float_dtype, device=device
+        )
+        r = torch.from_numpy(np.concatenate(r, axis=0)).to(
+            dtype=float_dtype, device=device
+        )
+        d = torch.from_numpy(np.concatenate(d, axis=0)).to(
+            dtype=torch.long, device=device
+        )
+        rtg = torch.from_numpy(np.concatenate(rtg, axis=0)).to(
+            dtype=float_dtype, device=device
+        )
+        timesteps = torch.from_numpy(np.concatenate(timesteps, axis=0)).to(
+            dtype=torch.long, device=device
+        )
+        mask = torch.from_numpy(np.concatenate(mask, axis=0)).to(device=device)
+
+        return s, a, r, d, rtg, timesteps, mask
+
     def eval_episodes(target_rew, visualize):
         def fn(model):
             returns, lengths, video_paths = [], [], []
@@ -474,6 +558,7 @@ def experiment(
             optimizer=optimizer,
             batch_size=batch_size,
             get_batch=get_batch,
+            get_test_batch = get_test_batch,
             train_nlp_dataset=train_nlp_dataloader,
             eval_nlp_dataset=eval_nlp_dataloader,
             scheduler=scheduler,

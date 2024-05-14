@@ -285,8 +285,7 @@ def parallel_evaluate_episode_rtg(
 
         all_layer_list = []
         n_head = heatmap_list[0][0].shape[1]
-        for kk in range(4): # n_layer
-            print(f"n_layer {kk}")
+        for layer_id in range(4): # n_layer
 
             ret_list = []
             for i in range(12): # iterate through heads
@@ -294,7 +293,7 @@ def parallel_evaluate_episode_rtg(
                 last_row_list = []
                 for hm_all in heatmap_list:
                     #print(f"{hm_all[0].shape=}") # bs, n_head, seq, seq
-                    hm = hm_all[kk][0][i] # get the first layer and the first head
+                    hm = hm_all[layer_id][0][i] # get the first layer and the first head
 
                     if hm.shape[-1] == 60:
                         last_row = hm[-2, :]

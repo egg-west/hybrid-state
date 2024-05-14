@@ -13,6 +13,7 @@ class Trainer:
         optimizer,
         batch_size,
         get_batch,
+        get_test_batch,
         loss_fn,
         trajectory_example,
         train_nlp_dataset=None,
@@ -27,6 +28,7 @@ class Trainer:
         self.batch_size = batch_size
         self.scaler = torch.cuda.amp.GradScaler()
         self.get_batch = get_batch
+        self.get_test_batch = get_test_batch
         self.loss_fn = loss_fn
         self.scheduler = scheduler
         self.step = 0
@@ -41,13 +43,13 @@ class Trainer:
         self.trajectory_example = trajectory_example
 
     def train_iteration(self, num_steps, iter_num=0, print_logs=False):
-        if self.eval_only and not self.args["eval_all_checkpoints"]:
+        if not self.args["eval_all_checkpoints"] and self.args["path_to_load"] != "":
             # load only one checkpoints instead of all traning checkpoints
-            if self.args["path_to_load"] != "":
-                print(f'loading model from {self.args["path_to_load"]}')
-                self.model.load_state_dict(
-                    torch.load(self.args["path_to_load"])
-                )
+
+            print(f'Loading model from {self.args["path_to_load"]}')
+            self.model.load_state_dict(
+                torch.load(self.args["path_to_load"])
+            )
 
         train_losses = []
         # lm_losses = []
