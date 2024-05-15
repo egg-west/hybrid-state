@@ -169,10 +169,10 @@ class SequenceTrainer(Trainer):
             loss += self.args["rtg_weight"] * rtg_loss
 
         batch = next(self.train_nlp_dataset)
-        lm_out = self.model.transformer_model(**batch)
-        lm_loss = lm_out.loss
 
         if self.args["co_training"]:
+            lm_out = self.model.transformer_model(**batch)
+            lm_loss = lm_out.loss
             loss += self.args["co_lambda"] * lm_loss
 
         self.optimizer.zero_grad()
