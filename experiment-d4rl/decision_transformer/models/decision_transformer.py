@@ -94,11 +94,17 @@ class DecisionTransformer(TrajectoryModel):
             print("Loading from pretrained "+args["pretrained_lm"]+" model")
             if args['lora']:
                 config = GPT2Config_LoRA.from_pretrained(args["pretrained_lm"])
-                self.transformer_model = GPT2LMHeadModel_LoRA.from_pretrained(
-                    args["pretrained_lm"],
-                    config=config,
-                    #ignore_mismatched_sizes=True,
-                )
+                if "image" in args["pretrained_lm"]:
+                    import decision_transformer
+                    decision_transformer.models.trajectory_gpt2_LoRA.GPT2LMHeadModel_LoRA.from_pretrained(
+                        args["pretrained_lm"],
+                        config=config,
+                    )
+                else:
+                    self.transformer_model = GPT2LMHeadModel_LoRA.from_pretrained(
+                        args["pretrained_lm"],
+                        config=config,
+                    )
             else:
                 config = transformers.GPT2Config.from_pretrained(args["pretrained_lm"])
                 config.resid_pdrop = args["dropout"]
