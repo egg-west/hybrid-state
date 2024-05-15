@@ -280,15 +280,18 @@ def parallel_evaluate_episode_rtg(
     if args["visualize_attn"]:
         # heatmap_list is a Tuple[Tensor], its length is n_layers; each heatmap is a Tensor [batch, n_head, seq_len, seq_len]
 
-        print(f"{len(heatmap_list[0])=}") # 12 layers
-        print(f"{heatmap_list[0][0].shape=}")
-
+        
         all_layer_list = []
         n_head = heatmap_list[0][0].shape[1]
-        for layer_id in range(4): # n_layer
+        n_layer = len(heatmap_list[0])
+
+        print(f"{n_layer=}") # 12 layers
+        print(f"{heatmap_list[0][0].shape=}")
+
+        for layer_id in range(min(4, n_layer)): # n_layer
 
             ret_list = []
-            for i in range(12): # iterate through heads
+            for i in range(n_head): # iterate through heads
 
                 last_row_list = []
                 for hm_all in heatmap_list:

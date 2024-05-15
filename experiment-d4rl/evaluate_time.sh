@@ -62,14 +62,11 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --num_eval_episodes ${num_eval_episodes} \
         --sample_ratio ${sample_ratio} \
         --warmup_steps ${warmup_steps} \
-        --pretrained_lm ${pretrained_lm} \
-        --adapt_mode \
-        --adapt_embed \
-        --lora \
         --outdir ${outdir} \
         --dropout ${dropout} \
         --description ${description} \
        --eval_only \
        --position_embed \
        --visualize_attn \
+       --path_to_load "checkpoints/hopper_medium_gpt2_pretrained-ratio=1.0_gpt2FromScratch_0/model_5.pt"
 #       --path_to_load "checkpoints/hopper_medium-expert_gpt2_pretrained-ratio=1_Lamo_0/model_40.pt"

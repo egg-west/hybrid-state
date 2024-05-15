@@ -295,8 +295,8 @@ class DecisionTransformer(TrajectoryModel):
             output_attentions=True,
             output_hidden_states=True,
         )
-        #x = transformer_outputs["last_hidden_state"]
-        x = transformer_outputs["hidden_states"][3]
+
+        x = transformer_outputs["hidden_states"][self.args["hidden_index"]]
 
         #print(f"{type(transformer_outputs['attentions'][0])}") # tuple
         #print(f"{transformer_outputs['attentions'][0].shape}") # 12

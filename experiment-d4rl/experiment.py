@@ -400,14 +400,6 @@ def experiment(
                 #returns.append(ret)
                 #lengths.append(length)
 
-            # return {
-            #     f"target_{target_rew}_return_mean": np.mean(returns),
-            #     f"target_{target_rew}_return_std": np.std(returns),
-            #     f"target_{target_rew}_length_mean": np.mean(lengths),
-            #     f"target_{target_rew}_length_std": np.std(lengths),
-            #     f"target_{target_rew}_noromalized_return_mean": env.get_normalized_score(np.mean(returns)),
-            #     f"target_{target_rew}_videos": [wandb.Video(video_path, fps=30, format="mp4") for video_path in video_paths]
-            # }
             return {
                 f"target_{target_rew}_return_mean": np.mean(ret),
                 f"target_{target_rew}_return_std": np.std(ret),
@@ -654,6 +646,8 @@ if __name__ == "__main__":
     parser.add_argument("--activation_function", type=str, default="relu")
     parser.add_argument("--extend_positions", action="store_true", default=False)
     parser.add_argument("--share_input_output_proj", action="store_true", default=False)
+    # shortcut, use only part of the pretrained model
+    parser.add_argument("--hidden_index", type=int, default=-1)
     # learning hyperparameters
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--learning_rate", "-lr", type=float, default=1e-4)
@@ -677,6 +671,7 @@ if __name__ == "__main__":
     parser.add_argument("--adapt_embed", action="store_true", default=False)
     parser.add_argument("--adapt_wte", action="store_true", default=False)
     parser.add_argument("--adapt_wpe", action="store_true", default=False)
+
     # lm co-training
     parser.add_argument("--co_training", action="store_true", default=False)
     parser.add_argument("--nlp_dataset_name", type=str, default="wikitext")
