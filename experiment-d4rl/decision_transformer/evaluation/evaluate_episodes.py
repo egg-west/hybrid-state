@@ -278,7 +278,8 @@ def parallel_evaluate_episode_rtg(
     # if n_envs == 1, iterate heat_map, get the last line for the attention
     # calculate intra-time-step interaction, inter-time-step interaction for all time step, for only full contex len data
     if args["visualize_attn"]:
-        # heatmap_list is a Tuple[Tensor], its length is n_layers; each heatmap is a Tensor [batch, n_head, seq_len, seq_len]
+        # heatmap_list is a List[Tuple[Tensor]], len(List) is episdoe len. Len(Tuple) is n_layers;
+        # each heatmap is a Tensor [batch, n_head, seq_len, seq_len]
 
         
         all_layer_list = []

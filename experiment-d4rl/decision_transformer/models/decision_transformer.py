@@ -96,7 +96,8 @@ class DecisionTransformer(TrajectoryModel):
                 config = GPT2Config_LoRA.from_pretrained(args["pretrained_lm"])
                 self.transformer_model = GPT2LMHeadModel_LoRA.from_pretrained(
                     args["pretrained_lm"],
-                    config=config
+                    config=config,
+                    #ignore_mismatched_sizes=True,
                 )
             else:
                 config = transformers.GPT2Config.from_pretrained(args["pretrained_lm"])
