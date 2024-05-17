@@ -1084,7 +1084,7 @@ class GPT2LMHeadModel_LoRA(GPT2PreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.transformer = GPT2Model_LoRA(config)
-        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size - 1, bias=False)
 
         self.init_weights()
 
