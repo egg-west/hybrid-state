@@ -281,7 +281,6 @@ def parallel_evaluate_episode_rtg(
         # heatmap_list is a List[Tuple[Tensor]], len(List) is episdoe len. Len(Tuple) is n_layers;
         # each heatmap is a Tensor [batch, n_head, seq_len, seq_len]
 
-        
         all_layer_list = []
         n_head = heatmap_list[0][0].shape[1]
         n_layer = len(heatmap_list[0])

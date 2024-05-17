@@ -57,15 +57,15 @@ class SequenceTrainer(Trainer):
             ) = self.get_test_batch(1)
 
             action_target = torch.clone(actions)
-
-            observation_preds, action_preds, rtg_preds, heatmap_list = self.model.forward(
-                states,
-                actions,
-                rewards,
-                rtg[:, :-1],
-                timesteps,
-                attention_mask=attention_mask,
-            )
+            with torch.no_grad():
+                observation_preds, action_preds, rtg_preds, heatmap_list = self.model.forward(
+                    states,
+                    actions,
+                    rewards,
+                    rtg[:, :-1],
+                    timesteps,
+                    attention_mask=attention_mask,
+                )
 
             print(f"{heatmap_list[0].shape=}") # [N, 12, seq_len, seq_len]
             all_layer_list = []
