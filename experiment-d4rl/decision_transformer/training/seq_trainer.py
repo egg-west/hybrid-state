@@ -74,7 +74,7 @@ class SequenceTrainer(Trainer):
             for layer_id in range(1): # n_layer
 
                 ret_list = []
-                for head_id in range(12): # iterate through heads
+                for head_id in range(n_head): # iterate through heads
 
                     last_row_list = []
                     episode_len = heatmap_list[0].shape[0]
