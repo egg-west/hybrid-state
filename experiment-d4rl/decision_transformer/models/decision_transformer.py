@@ -96,7 +96,7 @@ class DecisionTransformer(TrajectoryModel):
                 config = GPT2Config_LoRA.from_pretrained(args["pretrained_lm"])
                 if "image" in args["pretrained_lm"]:
                     import decision_transformer
-                    self.transformer_model = decision_transformer.models.trajectory_gpt2_LoRA.GPT2LMHeadModel_LoRA.from_pretrained(
+                    self.transformer_model = decision_transformer.models.image_gpt2_LoRA.GPT2LMHeadModel_LoRA.from_pretrained(
                         args["pretrained_lm"],
                         config=config,
                     )
