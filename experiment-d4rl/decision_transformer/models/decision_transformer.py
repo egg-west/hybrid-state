@@ -19,6 +19,7 @@ from transformers.models.gpt2 import GPT2Tokenizer
 from decision_transformer.models.trajectory_gpt2 import GPT2Model, GPT2LMHeadModel
 from decision_transformer.models.trajectory_gpt2_LoRA import GPT2Model_LoRA, GPT2LMHeadModel_LoRA
 from decision_transformer.models.trajectory_gpt2_LoRA import GPT2Config_LoRA
+from decision_transformer.models.image_gpt2_LoRA import GPT2LMHeadModel_LoRA as iGPT2LMHeadModel_LoRA
 
 from decision_transformer.models.utils import ResidualBlock, MLPBlock
 
@@ -95,8 +96,8 @@ class DecisionTransformer(TrajectoryModel):
             if args['lora']:
                 config = GPT2Config_LoRA.from_pretrained(args["pretrained_lm"])
                 if "image" in args["pretrained_lm"]:
-                    import decision_transformer
-                    self.transformer_model = decision_transformer.models.image_gpt2_LoRA.GPT2LMHeadModel_LoRA.from_pretrained(
+                    #import decision_transformer
+                    self.transformer_model = iGPT2LMHeadModel_LoRA.from_pretrained(
                         args["pretrained_lm"],
                         config=config,
                     )
