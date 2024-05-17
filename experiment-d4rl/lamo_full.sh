@@ -43,7 +43,7 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --sample_ratio ${sample_ratio} \
         --warmup_steps ${warmup_steps} \
         --pretrained_lm ${pretrained_lm} \
-	--hidden_index ${h_id} \
+	    --hidden_index ${h_id} \
         --outdir ${outdir} \
         --dropout ${dropout} \
         --description ${description} \

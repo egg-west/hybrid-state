@@ -302,10 +302,12 @@ def parallel_evaluate_episode_rtg(
                     if hm.shape[-1] == 60:
                         last_row = hm[-2, :]
 
-                        cum_last_row = np.cumsum(last_row.detach().cpu().numpy()[::-1]) # get rid of the last action, which is a zero tensor
-                        step_wise_hm = cum_last_row[2::3] # step_wise_hm should be [20]
-
+                        #cum_last_row = np.cumsum(last_row.detach().cpu().numpy()[::-1]) # get rid of the last action, which is a zero tensor
+                        #step_wise_hm = cum_last_row[2::3] # step_wise_hm should be [20]
+                        last_row = last_row.detach().cpu().numpy()[::-1]
+                        step_wise_hm = last_row[1:]
                         last_row_list.append(step_wise_hm)
+
                 if (len(last_row_list) > 0):
                     final_last_row = sum(last_row_list) / len(last_row_list)
                     ret_list.append(final_last_row)

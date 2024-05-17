@@ -5,7 +5,7 @@ model_type=dt # bc, dt
 lr=1e-4 # default is 1e-4
 lmlr=1e-5 # default is lr
 weight_decay=1e-5 # default is 1e-4
-dropout=0.1
+dropout=0
 warmup_steps=1 # default is 10000
 num_steps_per_iter=1 # default is 2500
 # warmup_steps=10
@@ -51,4 +51,5 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --description ${description} \
        --position_embed \
        --visualize_attn \
+#       --gpt_position_embed \
 #       --path_to_load "checkpoints/hopper_medium-expert_gpt2_pretrained-ratio=1_Lamo_0/model_40.pt"

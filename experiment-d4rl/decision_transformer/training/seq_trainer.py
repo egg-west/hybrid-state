@@ -45,6 +45,7 @@ class SequenceTrainer(Trainer):
                 attention_mask=attention_mask,
             )
         elif self.args["visualize_attn"] and not self.args["eval_only"]:
+            self.model.eval()
             (
                 states,
                 actions,
@@ -79,13 +80,16 @@ class SequenceTrainer(Trainer):
                     episode_len = heatmap_list[0].shape[0]
                     for time_step in range(episode_len): # iterate through episode
                         #print(f"{hm_all[0].shape=}") # bs, n_head, seq, seq
-                        hm = heatmap_list[layer_id][time_step][head_id] # get the first layer and the first head
+                        hm = heatmap_list[layer_id][time_step][head_id]
 
                         if hm.shape[-1] == 60:
-                            last_row = hm[-2, :]
+                            last_row = hm[-2, :] # get the last-but-one line for action prediction
 
-                            cum_last_row = np.cumsum(last_row.detach().cpu().numpy()[::-1]) # get rid of the last action, which is a zero tensor
-                            step_wise_hm = cum_last_row[2::3] # step_wise_hm should be [20]
+                            #cum_last_row = np.cumsum(last_row.detach().cpu().numpy()[::-1]) # get rid of the last action, which is a zero tensor
+                            #step_wise_hm = cum_last_row[2::3] # step_wise_hm should be [20]
+                            last_row = last_row.detach().cpu().numpy()[::-1]
+                            #step_wise_hm = cum_last_row[1:]
+                            step_wise_hm = last_row[1:]
 
                             last_row_list.append(step_wise_hm)
                     if (len(last_row_list) > 0):

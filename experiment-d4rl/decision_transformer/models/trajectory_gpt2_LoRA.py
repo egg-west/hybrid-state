@@ -852,6 +852,7 @@ class GPT2Model_LoRA(GPT2PreTrainedModel):
         return_dict=None,
         to_add_position_embeds=False,
     ):
+        #self.wpe = None
         output_attentions = (
             output_attentions
             if output_attentions is not None
@@ -947,6 +948,7 @@ class GPT2Model_LoRA(GPT2PreTrainedModel):
             inputs_embeds = self.wte(input_ids)
 
         if to_add_position_embeds:
+            print(f"to_add_position_embeds!!!\n\n")
             inputs_embeds = inputs_embeds + self.wpe(position_ids)
 
         hidden_states = inputs_embeds

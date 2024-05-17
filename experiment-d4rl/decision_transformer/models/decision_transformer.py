@@ -89,7 +89,7 @@ class DecisionTransformer(TrajectoryModel):
         self.do_reprograming = args["reprogram"]
         self.position_embed = args['position_embed']
         self.gpt_posiiton_embed = args['gpt_position_embed']
-        
+
         if args["pretrained_lm"] is not None:
             print("Loading from pretrained "+args["pretrained_lm"]+" model")
             if args['lora']:
@@ -229,12 +229,13 @@ class DecisionTransformer(TrajectoryModel):
         if attention_mask is None:
             # attention mask for GPT: 1 if can be attended to, 0 if not
             attention_mask = torch.ones((batch_size, seq_length), dtype=torch.long, device=states.device)
-        # embed each modality with a different head
 
+        # embed each modality with a different head
         state_embeddings = self.embed_state(states)
         action_embeddings = self.embed_action(actions)
         returns_embeddings = self.embed_return(returns_to_go)
         time_embeddings = self.embed_timestep(timesteps)
+
         # print(f'{timesteps[0]=}') # consecutive numbers
         # print(f"{state_embeddings.shape=}, {time_embeddings.shape=}")
         ## both are ([64, 20, 768])
@@ -311,23 +312,24 @@ class DecisionTransformer(TrajectoryModel):
         # if self.args["visualize_attn"] and transformer_outputs['attentions'][0].shape[-1] == 60:
         #     #plot attention
         #     # transformer_outputs['attentions'] has the shape of [n_layer, batch_size, n_head(12), seq_len, seq_len]
-        #     target_att = transformer_outputs['attentions'][0][0][0].cpu().detach()
-        #     target_att = target_att[1::3]
-        #     plt.imshow(target_att, cmap="hot")
-        #     plt.savefig("test.png")
+        #     for i in range(12):
+        #         target_att = transformer_outputs['attentions'][0][0][i].cpu().detach()
+        #         target_att = target_att[1::3]
+        #         plt.imshow(target_att, cmap="hot")
+        #         plt.savefig(f"test_{i}.png")
 
-        #     def show_attn_dist(attn):
-        #         # to prove attention matrix distance does not matter!
-        #         dist = torch.zeros((attn[0].shape[2], attn[0].shape[3]))
-        #         for i in range(dist.shape[0]):
-        #             for j in range(dist.shape[1]):
-        #                 dist[i][j] = abs(i - j)
+        #     # def show_attn_dist(attn):
+        #     #     # to prove attention matrix distance does not matter!
+        #     #     dist = torch.zeros((attn[0].shape[2], attn[0].shape[3]))
+        #     #     for i in range(dist.shape[0]):
+        #     #         for j in range(dist.shape[1]):
+        #     #             dist[i][j] = abs(i - j)
             
-        #         for i in range(len(attn)):
-        #             layer_attn = attn[i].mean(0)[0].detach().cpu()
-        #             attn_dist = (layer_attn * dist).mean()
-        #             print(f"layer {i} attention distance: {attn_dist}")
-        #     show_attn_dist(transformer_outputs['attentions'])
+        #     #     for i in range(len(attn)):
+        #     #         layer_attn = attn[i].mean(0)[0].detach().cpu()
+        #     #         attn_dist = (layer_attn * dist).mean()
+        #     #         print(f"layer {i} attention distance: {attn_dist}")
+        #     # show_attn_dist(transformer_outputs['attentions'])
         #     raise NotImplementedError
 
         #print(transformer_outputs.keys())
