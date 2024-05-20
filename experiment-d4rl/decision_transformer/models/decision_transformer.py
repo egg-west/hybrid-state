@@ -123,10 +123,10 @@ class DecisionTransformer(TrajectoryModel):
                         if args["reinit_markov_head"]:
                             for h_id in [1, 3, 4, 5]:
                                 #print(f'{p_dict["transformer.h.0.attn.c_attn.bias"]}') #[h_id*768:(h_id*768 + 10)]}')
-                                init.zeros_(p_dict['transformer.h.0.attn.c_attn.bias'][h_id*768:(h_id+1)*768])
+                                init.zeros_(p_dict['transformer.h.0.attn.c_attn.bias'][h_id*64:(h_id+1)*64])
                                 c_dict = dict(self.transformer_model.named_parameters())
                                 #print(f'{c_dict["transformer.h.0.attn.c_proj.bias"][h_id*768:(h_id*768 + 10)]}')
-                                init.xavier_normal_(p_dict['transformer.h.0.attn.c_attn.weight'][:, h_id*768:(h_id+1)*768])
+                                init.xavier_normal_(p_dict['transformer.h.0.attn.c_attn.weight'][:, h_id*64:(h_id+1)*64])
                             print("Initialized part of the first attention successfully!")
 
             else:

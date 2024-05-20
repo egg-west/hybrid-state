@@ -51,5 +51,6 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --description ${description} \
        --position_embed \
        --visualize_attn \
+       --reinit_markov_head \
 #       --gpt_position_embed \
 #       --path_to_load "checkpoints/hopper_medium-expert_gpt2_pretrained-ratio=1_Lamo_0/model_40.pt"
