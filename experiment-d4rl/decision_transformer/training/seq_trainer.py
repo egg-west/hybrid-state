@@ -70,11 +70,12 @@ class SequenceTrainer(Trainer):
             print(f"{heatmap_list[0].shape=}") # [N, 12, seq_len, seq_len]
             all_layer_list = []
 
-            n_head = heatmap_list[0][0].shape[1]
+            #n_head = heatmap_list[0][0].shape[1]
             for layer_id in range(1): # n_layer
 
                 ret_list = []
-                for head_id in range(n_head): # iterate through heads
+                #for head_id in range(n_head): # iterate through heads
+                for head_id in range(12):
 
                     last_row_list = []
                     episode_len = heatmap_list[0].shape[0]

@@ -21,7 +21,7 @@ else
 fi # K is context length
 dataset=${2}
 sample_ratio=${3}
-pretrained_lm="gpt2"
+pretrained_lm="openai/imagegpt-small"
 description=${4}
 seed=${5}
 description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
@@ -49,4 +49,3 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --dropout ${dropout} \
         --description ${description} \
         --position_embed \
-       --log_to_wandb \

@@ -3,6 +3,7 @@ import math
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
+import torch.nn.init as init
 import torch.nn.functional as F
 
 import transformers
@@ -95,17 +96,39 @@ class DecisionTransformer(TrajectoryModel):
             print("Loading from pretrained "+args["pretrained_lm"]+" model")
             if args['lora']:
                 config = GPT2Config_LoRA.from_pretrained(args["pretrained_lm"])
-                if "image" in args["pretrained_lm"]:
-                    #import decision_transformer
-                    self.transformer_model = iGPT2LMHeadModel_LoRA.from_pretrained(
-                        args["pretrained_lm"],
-                        config=config,
-                    )
-                else:
-                    self.transformer_model = GPT2LMHeadModel_LoRA.from_pretrained(
-                        args["pretrained_lm"],
-                        config=config,
-                    )
+                if args["pretrained_lm"] != None:
+                    if "image" in args["pretrained_lm"]:
+                        #import decision_transformer
+                        self.transformer_model = iGPT2LMHeadModel_LoRA.from_pretrained(
+                            args["pretrained_lm"],
+                            config=config,
+                        )
+                    else:
+                        self.transformer_model = GPT2LMHeadModel_LoRA.from_pretrained(
+                            args["pretrained_lm"],
+                            config=config,
+                        )
+                        #transformer.h.0.attn.c_proj.weight
+                        p_dict = dict(self.transformer_model.named_parameters())
+                        # print(f'{p_dict["transformer.h.0.attn.c_attn.weight"].shape=}')
+                        # print(f'{p_dict["transformer.h.0.attn.c_proj.weight"].shape=}') # [768, 768]
+                        # print(f'{p_dict["transformer.h.0.attn.c_proj.bias"].shape=}') #[768]
+                        # a_tensor = torch.FloatTensor(p_dict["transformer.h.0.attn.c_proj.bias"].data)
+                        # b_tensor = torch.FloatTensor(p_dict["transformer.h.0.attn.c_proj.weight"].data)
+                        # for h_id in [1, 3, 4, 5]:
+                        #     a_tensor[h_id*768:(h_id+1)*768] = 0
+                        #     init.xavier_normal_(b_tensor[h_id*768:(h_id+1)*768])
+                        # print(a_tensor.shape)
+                        # print(a_tensor)
+                        if args["reinit_markov_head"]:
+                            for h_id in [1, 3, 4, 5]:
+                                #print(f'{p_dict["transformer.h.0.attn.c_attn.bias"]}') #[h_id*768:(h_id*768 + 10)]}')
+                                init.zeros_(p_dict['transformer.h.0.attn.c_attn.bias'][h_id*768:(h_id+1)*768])
+                                c_dict = dict(self.transformer_model.named_parameters())
+                                #print(f'{c_dict["transformer.h.0.attn.c_proj.bias"][h_id*768:(h_id*768 + 10)]}')
+                                init.xavier_normal_(p_dict['transformer.h.0.attn.c_attn.weight'][:, h_id*768:(h_id+1)*768])
+                            print("Initialized part of the first attention successfully!")
+
             else:
                 config = transformers.GPT2Config.from_pretrained(args["pretrained_lm"])
                 config.resid_pdrop = args["dropout"]
