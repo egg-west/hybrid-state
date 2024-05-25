@@ -108,26 +108,18 @@ class DecisionTransformer(TrajectoryModel):
                             args["pretrained_lm"],
                             config=config,
                         )
-                        #transformer.h.0.attn.c_proj.weight
+
                         p_dict = dict(self.transformer_model.named_parameters())
-                        # print(f'{p_dict["transformer.h.0.attn.c_attn.weight"].shape=}')
-                        # print(f'{p_dict["transformer.h.0.attn.c_proj.weight"].shape=}') # [768, 768]
-                        # print(f'{p_dict["transformer.h.0.attn.c_proj.bias"].shape=}') #[768]
-                        # a_tensor = torch.FloatTensor(p_dict["transformer.h.0.attn.c_proj.bias"].data)
-                        # b_tensor = torch.FloatTensor(p_dict["transformer.h.0.attn.c_proj.weight"].data)
-                        # for h_id in [1, 3, 4, 5]:
-                        #     a_tensor[h_id*768:(h_id+1)*768] = 0
-                        #     init.xavier_normal_(b_tensor[h_id*768:(h_id+1)*768])
-                        # print(a_tensor.shape)
-                        # print(a_tensor)
-                        if args["reinit_markov_head"]:
-                            for h_id in [1, 3, 4, 5]:
-                                #print(f'{p_dict["transformer.h.0.attn.c_attn.bias"]}') #[h_id*768:(h_id*768 + 10)]}')
-                                init.zeros_(p_dict['transformer.h.0.attn.c_attn.bias'][h_id*64:(h_id+1)*64])
-                                c_dict = dict(self.transformer_model.named_parameters())
-                                #print(f'{c_dict["transformer.h.0.attn.c_proj.bias"][h_id*768:(h_id*768 + 10)]}')
-                                init.xavier_normal_(p_dict['transformer.h.0.attn.c_attn.weight'][:, h_id*64:(h_id+1)*64])
-                            print("Initialized part of the first attention successfully!")
+
+                        # if args["reinit_markov_head"]:
+                        #     #for h_id in [1, 3, 4, 5]: # These heads has most attention assigned the current token
+                        #     for h_id in [0, 2, 6, 7]:
+                        #         #print(f'{p_dict["transformer.h.0.attn.c_attn.bias"]}') #[h_id*768:(h_id*768 + 10)]}')
+                        #         init.zeros_(p_dict['transformer.h.0.attn.c_attn.bias'][h_id*64:(h_id+1)*64])
+                        #         c_dict = dict(self.transformer_model.named_parameters())
+                        #         #print(f'{c_dict["transformer.h.0.attn.c_proj.bias"][h_id*768:(h_id*768 + 10)]}')
+                        #         init.xavier_normal_(p_dict['transformer.h.0.attn.c_attn.weight'][:, h_id*64:(h_id+1)*64])
+                        #     print("Initialized part of the first attention successfully!")
 
             else:
                 config = transformers.GPT2Config.from_pretrained(args["pretrained_lm"])
@@ -326,6 +318,7 @@ class DecisionTransformer(TrajectoryModel):
             to_add_position_embeds=self.gpt_posiiton_embed,
             output_attentions=True,
             output_hidden_states=True,
+            interrupt_h=self.args["hidden_index"],
         )
 
         x = transformer_outputs["hidden_states"][self.args["hidden_index"]]

@@ -18,10 +18,11 @@ if [ "$env" == "reacher2d" ]; then
     K=5
 else
     K=20
+K=10
 fi # K is context length
 dataset=${2}
 sample_ratio=${3}
-pretrained_lm="gpt2"
+pretrained_lm="gpt2-large"
 description=${4}
 seed=${5}
 description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"

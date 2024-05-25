@@ -21,7 +21,7 @@ else
 fi # K is context length
 dataset=${2}
 sample_ratio=${3}
-pretrained_lm="gpt2"
+pretrained_lm="gpt2-xl"
 description=${4}
 seed=${5}
 description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"

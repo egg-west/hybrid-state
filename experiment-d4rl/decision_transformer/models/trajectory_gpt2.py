@@ -814,7 +814,8 @@ class GPT2Model(GPT2PreTrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
-        to_add_position_embeds=False
+        to_add_position_embeds=False,
+        interrupt_h=None,
     ):
         output_attentions = (
             output_attentions
@@ -929,8 +930,9 @@ class GPT2Model(GPT2PreTrainedModel):
             () if output_attentions and self.config.add_cross_attention else None
         )
         all_hidden_states = () if output_hidden_states else None
+        #print("Start the forward passing")
         for i, (block, layer_past) in enumerate(zip(self.h, past_key_values)):
-
+            #print(f"Block {i}")
             # Model parallel
             if self.model_parallel:
                 torch.cuda.set_device(hidden_states.device)
@@ -1001,6 +1003,9 @@ class GPT2Model(GPT2PreTrainedModel):
                 for k, v in self.device_map.items():
                     if i == v[-1] and "cuda:" + str(k) != self.last_device:
                         hidden_states = hidden_states.to("cuda:" + str(k + 1))
+            if type(interrupt_h) == int:
+                if i == interrupt_h:
+                    break
 
         hidden_states = self.ln_f(hidden_states)
 
