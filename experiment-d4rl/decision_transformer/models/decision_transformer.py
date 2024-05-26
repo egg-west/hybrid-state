@@ -21,6 +21,9 @@ from decision_transformer.models.trajectory_gpt2 import GPT2Model, GPT2LMHeadMod
 from decision_transformer.models.trajectory_gpt2_LoRA import GPT2Model_LoRA, GPT2LMHeadModel_LoRA
 from decision_transformer.models.trajectory_gpt2_LoRA import GPT2Config_LoRA
 from decision_transformer.models.image_gpt2_LoRA import GPT2LMHeadModel_LoRA as iGPT2LMHeadModel_LoRA
+from decision_transformer.models.trajectory_llama2 import LlamaModel, LlamaForCausalLM
+
+from transformers import LlamaConfig
 
 from decision_transformer.models.utils import ResidualBlock, MLPBlock
 
@@ -71,7 +74,11 @@ class DecisionTransformer(TrajectoryModel):
     """
     @property
     def transformer(self):
-        return self.transformer_model.transformer
+        if self.args["pretrained_lm"] is not None:
+            if "gpt" in self.args["pretrained_lm"]:
+                return self.transformer_model.transformer
+            else:
+                return self.transformer_model
 
     def __init__(
         self,
@@ -103,7 +110,7 @@ class DecisionTransformer(TrajectoryModel):
                             args["pretrained_lm"],
                             config=config,
                         )
-                    else:
+                    elif "gpt" in args["pretrained_lm"]:
                         self.transformer_model = GPT2LMHeadModel_LoRA.from_pretrained(
                             args["pretrained_lm"],
                             config=config,
@@ -120,16 +127,34 @@ class DecisionTransformer(TrajectoryModel):
                         #         #print(f'{c_dict["transformer.h.0.attn.c_proj.bias"][h_id*768:(h_id*768 + 10)]}')
                         #         init.xavier_normal_(p_dict['transformer.h.0.attn.c_attn.weight'][:, h_id*64:(h_id+1)*64])
                         #     print("Initialized part of the first attention successfully!")
+                    else:
+                        raise NotImplementedError
 
-            else:
+            elif "gpt" in args["pretrained_lm"]:
                 config = transformers.GPT2Config.from_pretrained(args["pretrained_lm"])
                 config.resid_pdrop = args["dropout"]
                 self.transformer_model = GPT2LMHeadModel.from_pretrained(
                     args["pretrained_lm"],
                     config=config,
                 )
-            hidden_size = config.n_embd
-            self.hidden_size = config.n_embd
+            elif "llama" in args["pretrained_lm"]:
+                #config = xx
+                #self.transformer_model = LlamaForCausalLM.from_pretrained(
+                self.transformer_model = LlamaModel.from_pretrained(
+                    args["pretrained_lm"],
+                    low_cpu_mem_usage=True,
+                    #torch_dtype=torch.float16,
+                    #load_in_4bit=True,
+                )
+                self.transformer_model.config.use_cache = False
+                config = self.transformer_model.config
+
+            if "gpt" in args["pretrained_lm"]: # gpt config
+                hidden_size = config.n_embd
+                self.hidden_size = config.n_embd
+            else:                  # llama
+                hidden_size = config.hidden_size
+                self.hidden_size = config.hidden_size
 
         else:
 
@@ -148,22 +173,22 @@ class DecisionTransformer(TrajectoryModel):
             hidden_size = config.n_embd
             self.hidden_size = config.n_embd
 
-        if max_ep_len > config.n_positions and args["extend_positions"]:
-            current_max_pos, embed_size = self.transformer.wpe.weight.shape
-            new_encoder_pos_embed = self.transformer.wpe.weight.new_empty(
-                max_ep_len, embed_size
-            )
-            # copy position embeddings over and over to initialize the new position embeddings
-            orig_k = 2
-            k = orig_k
-            step = current_max_pos - k
-            new_encoder_pos_embed[:k] = self.transformer.wpe.weight[:k]
-            while k < max_ep_len - 1:
-                new_encoder_pos_embed[k : (k + step)] = self.transformer.wpe.weight[
-                    orig_k : min(max_ep_len - k + orig_k, current_max_pos)
-                ]
-                k += step
-            self.transformer.wpe.weight.data = new_encoder_pos_embed
+        # if max_ep_len > config.n_positions and args["extend_positions"]:
+        #     current_max_pos, embed_size = self.transformer.wpe.weight.shape
+        #     new_encoder_pos_embed = self.transformer.wpe.weight.new_empty(
+        #         max_ep_len, embed_size
+        #     )
+        #     # copy position embeddings over and over to initialize the new position embeddings
+        #     orig_k = 2
+        #     k = orig_k
+        #     step = current_max_pos - k
+        #     new_encoder_pos_embed[:k] = self.transformer.wpe.weight[:k]
+        #     while k < max_ep_len - 1:
+        #         new_encoder_pos_embed[k : (k + step)] = self.transformer.wpe.weight[
+        #             orig_k : min(max_ep_len - k + orig_k, current_max_pos)
+        #         ]
+        #         k += step
+        #     self.transformer.wpe.weight.data = new_encoder_pos_embed
 
         if args["extend_positions"]:
             self.embed_timestep = self.transformer.wpe
