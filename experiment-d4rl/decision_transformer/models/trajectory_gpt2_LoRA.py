@@ -851,6 +851,7 @@ class GPT2Model_LoRA(GPT2PreTrainedModel):
         output_hidden_states=None,
         return_dict=None,
         to_add_position_embeds=False,
+        interrupt_h=None,
     ):
         #self.wpe = None
         output_attentions = (
@@ -1040,6 +1041,10 @@ class GPT2Model_LoRA(GPT2PreTrainedModel):
                     if i == v[-1] and "cuda:" + str(k) != self.last_device:
                         hidden_states = hidden_states.to("cuda:" + str(k + 1))
 
+            if type(interrupt_h) == int:
+                if i == interrupt_h:
+                    break
+
         hidden_states = self.ln_f(hidden_states)
 
         hidden_states = hidden_states.view(*output_shape)
@@ -1171,6 +1176,7 @@ class GPT2LMHeadModel_LoRA(GPT2PreTrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
+        interrupt_h=None,
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size, sequence_length)`, `optional`):

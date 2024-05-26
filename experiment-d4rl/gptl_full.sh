@@ -18,7 +18,7 @@ if [ "$env" == "reacher2d" ]; then
     K=5
 else
     K=20
-K=10
+K=20
 fi # K is context length
 dataset=${2}
 sample_ratio=${3}
@@ -28,7 +28,7 @@ seed=${5}
 description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
 gpu=${6}
 outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
-h_id=3
+h_id=2
 
 CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --dataset ${dataset} \
