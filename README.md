@@ -52,34 +52,43 @@ Below, we visualize **8** tasks across **3** domains that we consider.
 </p>
 
 # 💻 Installation
-## D4RL
-### Environment
-#### Install MuJoCo
-First, you need to download the file from this [link](https://mujoco.org/download/mujoco210-linux-x86_64.tar.gz) and `tar -xvf the_file_name` in the `~/.mujoco` folder. Then, run the following commands.
+
 ```bash
+sudo apt install libx11-dev libglew-dev patchelf libosmesa6-dev tmux
+# Set up environmental variables
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/<user-name>/.mujoco/mujoco210/bin
+
+mkdir .mujoco
+cd .mujoco
+wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz
+tar xvf mujoco210-linux-x86_64.tar.gz
+cd ..
+
+#install d4rl by clone 
+git clone https://github.com/Farama-Foundation/D4RL
+cd D4RL
+pip install -e .
+cd ..
+
+
 cd experiment-d4rl
 conda create -n lamo-d4rl python=3.8.17
-```
-After that, add the following lines to your `~/.bashrc` file:
-```bash
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/YOUR_PATH_TO_THIS/.mujoco/mujoco210/bin
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/nvidia
-```
-Remember to `source ~/.bashrc` to make the changes take effect.
+pip install mujoco==2.3.7
+pip install dm-control==1.0.14
+pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
+pip install -r requirements.txt
 
-#### Install D4RL
-Install D4RL by following the guidance in [D4RL](https://github.com/Farama-Foundation/D4RL).
+# download dataset (see below)
+# run it
+bash lamo.sh hopper medium 1 debug 0 0
+```
 
 ### Dataset
 To download original D4RL data, 
 ```bash
 cd data
 python download_d4rl_datasets.py
-
-pip install mujoco==2.3.7
-pip install dm-control==1.0.14
-pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
-pip install -r requirements.txt
 ```
 
 To get downsampled data, you need to modify line 10 of 'data/mujoco/ratio_dataset.py' and line 10 of 'data/kitchen/ratio_dataset.py' as 
