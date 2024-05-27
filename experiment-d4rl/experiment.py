@@ -639,6 +639,7 @@ if __name__ == "__main__":
     parser.add_argument("--outdir", type=str, default=None)
     parser.add_argument("--fp16", action="store_true", default=False)
     parser.add_argument("--description", type=str, default="")
+    parser.add_argument("--save_checkpoints", action="store_true", default=False)
     # architecture, don't need to care about in our method
     parser.add_argument("--embed_dim", type=int, default=128)
     parser.add_argument("--n_layer", type=int, default=3)

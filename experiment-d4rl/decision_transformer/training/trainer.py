@@ -106,7 +106,7 @@ class Trainer:
             for k, v in logs.items():
                 print(f"{k}: {v}")
 
-        if not self.eval_only:
+        if self.args.get("save_checkpoints"):
             if self.args.get("outdir") and iter_num % 5 == 0:
                 torch.save(
                     self.model.state_dict(),
