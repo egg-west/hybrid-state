@@ -116,6 +116,9 @@ class SequenceTrainer(Trainer):
                 attention_mask,
             ) = self.get_batch(self.batch_size)
 
+            if self.args["quantize_rtg"]:
+                rtg = (rtg*1000).to(torch.int).to(torch.float)/1000.0
+
             action_target = torch.clone(actions)
 
             observation_preds, action_preds, rtg_preds, _ = self.model.forward(
@@ -146,6 +149,39 @@ class SequenceTrainer(Trainer):
         )
         loss = action_loss
 
+        if self.args["conservative_rtg"]:
+            #noise = np.random.uniform(0.1, 0.3, size=rtg[:, :-1].shape)
+            noise = np.random.uniform(0.4, 0.5, size=rtg[:, :-1].shape)
+            #print(f"{rtg[0, :10]=}")
+            rtg[:, :-1] += torch.FloatTensor(noise).to(rtg.device)
+            #print(f"{rtg[0, :10]=}")
+            observation_preds, noise_action_preds, rtg_preds, _ = self.model.forward(
+                states,
+                actions,
+                rewards,
+                rtg[:, :-1],
+                timesteps,
+                attention_mask=attention_mask,
+            )
+
+            action_target = torch.clone(actions)
+            #print(f"{action_target[0, :]=}")
+            #print(f"{action_preds.shape=}")
+            extreme_action_target = torch.ones(action_target.shape).to(action_target.device) * 1.1
+            #print(f"{extreme_action_target[0, :]=}")
+            #print(f"{extreme_action_target.shape=}")
+
+            conservative_loss = self.loss_fn(
+                None,
+                noise_action_preds,
+                None,
+                None,
+                extreme_action_target,
+                None,
+            )
+
+            loss += conservative_loss
+
         if rtg_preds != None:
             rtg_target = (
                 encode_return(
@@ -173,9 +209,8 @@ class SequenceTrainer(Trainer):
                 )
             loss += self.args["rtg_weight"] * rtg_loss
 
-        batch = next(self.train_nlp_dataset)
-
         if self.args["co_training"]:
+            batch = next(self.train_nlp_dataset)
             lm_out = self.model.transformer_model(**batch)
             lm_loss = lm_out.loss
             loss += self.args["co_lambda"] * lm_loss
@@ -191,4 +226,6 @@ class SequenceTrainer(Trainer):
                 #torch.mean((action_preds - action_target) ** 2).detach().cpu().item()
             )
 
+        if self.args["conservative_rtg"]:
+            return loss.detach().cpu().item(), conservative_loss.detach().cpu().item()
         return loss.detach().cpu().item()#, lm_loss.detach().cpu().item()

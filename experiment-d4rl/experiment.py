@@ -58,14 +58,19 @@ def experiment(
         test_env = gym.vector.make(f"hopper-{dataset}-v2", num_envs=variant["n_envs"])
         max_ep_len = 1000
         #env_targets = [3600, 2600, 2200, 1800]  # evaluation conditioning targets
-        env_targets = [3600, 2600]  # evaluation conditioning targets
+        #env_targets = [3600, 2600]  # evaluation conditioning targets
+        env_targets = [3600, 2600, 2200, 1800]
+        #env_targets = [3000]
+        #env_targets = list(range(1800, 2600, 50))#[2000]
+        #env_targets = [3600, 2900, 2600, 2200, 2000, 1800, 1600, 1400]
         scale = 1000.0  # normalization for rewards/returns
     elif env_name == "halfcheetah":
         env = gym.make(f"halfcheetah-{dataset}-v2")
         test_env = gym.vector.make(f"halfcheetah-{dataset}-v2", num_envs=variant["n_envs"])
         max_ep_len = 1000
-        #env_targets = [12000, 8000, 6000, 4500]
-        env_targets = [12000, 8000, 6000]
+        env_targets = [12000, 8000, 6000, 4500]
+        #env_targets = [12000, 8000, 6000]
+        #env_targets = [6000]
         scale = 1000.0
     elif env_name == "walker2d":
         env = gym.make(f"walker2d-{dataset}-v2")
@@ -459,6 +464,7 @@ def experiment(
                 lora.mark_only_lora_as_trainable(model, bias='lora_only')
                 # lora.mark_only_lora_as_trainable(model, bias='all')
                 # NOTE: Don't put this part below other adaptation part.
+
             if variant["adapt_wte"]:
                 print("adapt wte.")
                 for param in model.transformer.wte.parameters():
@@ -640,6 +646,7 @@ if __name__ == "__main__":
     parser.add_argument("--fp16", action="store_true", default=False)
     parser.add_argument("--description", type=str, default="")
     parser.add_argument("--save_checkpoints", action="store_true", default=False)
+
     # architecture, don't need to care about in our method
     parser.add_argument("--embed_dim", type=int, default=128)
     parser.add_argument("--n_layer", type=int, default=3)
@@ -680,7 +687,6 @@ if __name__ == "__main__":
         "--nlp_dataset_config_name", type=str, default="wikitext-103-raw-v1"
     )
     parser.add_argument("--co_lambda", type=float, default=0.1)
-    parser.add_argument("--reprogram", action="store_true", default=False)
     parser.add_argument("--position_embed", action="store_true", default=False)
     parser.add_argument("--gpt_position_embed", action="store_true", default=False)
     parser.add_argument("--eval_only", action="store_true", default=False)
@@ -704,6 +710,15 @@ if __name__ == "__main__":
     parser.add_argument("--rtg_weight", type=float, default=0.001) #0.001
     parser.add_argument("--rtg_scale", type=float, default=1000.0)
     parser.add_argument("--top_percentile", type=float, default=0.15) #0.15
+
+    # investigate the generalization
+    parser.add_argument("--conservative_rtg", action="store_true", default=False)
+    parser.add_argument("--quantize_rtg", action="store_true", default=False)
+    parser.add_argument("--search_rtg", action="store_true", default=False)
+
+    # visualization, analysis
+    parser.add_argument("--action_analyze", action="store_true", default=False)
+    parser.add_argument("--action_analyze_no_interaction", action="store_true", default=False)
 
     args = parser.parse_args()
     experiment("d4rl-experiment", variant=vars(args))

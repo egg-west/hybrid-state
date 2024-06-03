@@ -27,6 +27,7 @@ seed=${5}
 description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
 gpu=${6}
 outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
+h_id=3
 
 CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --dataset ${dataset} \
@@ -42,12 +43,12 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --sample_ratio ${sample_ratio} \
         --warmup_steps ${warmup_steps} \
         --pretrained_lm ${pretrained_lm} \
-        --adapt_mode \
-        --adapt_embed \
-        --lora \
+        --hidden_index ${h_id} \
         --outdir ${outdir} \
         --dropout ${dropout} \
         --description ${description} \
         --position_embed \
-       --log_to_wandb \
+        --conservative_rtg \
        --save_checkpoints \
+       --log_to_wandb \
+#       --quantize_rtg \

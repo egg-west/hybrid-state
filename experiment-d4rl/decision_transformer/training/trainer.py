@@ -63,7 +63,12 @@ class Trainer:
             progress_bar = tqdm.tqdm(range(num_steps), desc=f"Training")
             for _ in progress_bar:
                 # train_loss, lm_loss = self.train_step()
-                train_loss = self.train_step()
+                if self.args["conservative_rtg"]:
+                    train_loss, conservative_loss = self.train_step()
+                    logs["training/conservative_loss_mean"] = np.mean(conservative_loss)
+                else:
+                    train_loss = self.train_step()
+                    logs["training/conservative_loss_mean"] = 0
 
                 train_losses.append(train_loss)
                 # lm_losses.append(lm_loss)
@@ -76,7 +81,7 @@ class Trainer:
                 # logs["training/lm_loss_mean"] = np.mean(lm_losses)
                 # logs["training/lm_loss_std"] = np.std(lm_losses)
 
-                progress_bar.set_postfix({"loss": logs["training/train_loss_mean"], "lr": self.optimizer.param_groups[0]['lr']})
+                progress_bar.set_postfix({"loss": logs["training/train_loss_mean"], "c_loss": logs["training/conservative_loss_mean"], "lr": self.optimizer.param_groups[0]['lr']})
                 
 
         eval_start = time.time()
@@ -91,10 +96,10 @@ class Trainer:
 
         if not self.eval_only:
             logs["time/total"] = time.time() - self.start_time
-        else:
-            print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
-            print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
-            print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
+
+        # print("torch.cuda.memory_allocated: %fGB"%(torch.cuda.memory_allocated(0)/1024/1024/1024))
+        # print("torch.cuda.memory_reserved: %fGB"%(torch.cuda.memory_reserved(0)/1024/1024/1024))
+        # print("torch.cuda.max_memory_reserved: %fGB"%(torch.cuda.max_memory_reserved(0)/1024/1024/1024))
         logs["time/evaluation"] = time.time() - eval_start
 
         for k in self.diagnostics:
@@ -107,7 +112,7 @@ class Trainer:
                 print(f"{k}: {v}")
 
         if self.args.get("save_checkpoints"):
-            if self.args.get("outdir") and iter_num % 5 == 0:
+            if self.args.get("outdir") and (iter_num % 5 == 0 or iter_num == 1):
                 torch.save(
                     self.model.state_dict(),
                     f"{self.args['outdir']}/model_{iter_num}.pt",

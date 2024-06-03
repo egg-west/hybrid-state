@@ -10,7 +10,7 @@ warmup_steps=2500 # default is 10000
 num_steps_per_iter=2500 # default is 2500
 # warmup_steps=10
 # num_steps_per_iter=10
-max_iters=60 # default is 40
+max_iters=1 # default is 40
 num_eval_episodes=20 # default is 100
 
 env=${1}
@@ -18,6 +18,7 @@ if [ "$env" == "reacher2d" ]; then
     K=5
 else
     K=20
+K=20
 fi # K is context length
 dataset=${2}
 sample_ratio=${3}
@@ -27,6 +28,8 @@ seed=${5}
 description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
 gpu=${6}
 outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
+h_id=12 #3
+n_envs=1
 
 CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --dataset ${dataset} \
@@ -42,12 +45,16 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --sample_ratio ${sample_ratio} \
         --warmup_steps ${warmup_steps} \
         --pretrained_lm ${pretrained_lm} \
-        --adapt_mode \
-        --adapt_embed \
-        --lora \
+        --hidden_index ${h_id} \
         --outdir ${outdir} \
         --dropout ${dropout} \
         --description ${description} \
+        --adapt_mode \
+        --adapt_embed \
+        --lora \
         --position_embed \
-       --log_to_wandb \
-       --save_checkpoints \
+        --eval_only \
+        --n_envs ${n_envs} \
+        --path_to_load "checkpoints/hopper_medium_gpt2_pretrained-ratio=1_lamo_0/model_40.pt" \
+        --action_analyze \
+#       --path_to_load "checkpoints/hopper_medium_gpt2_pretrained-ratio=1_lamo_0/model_5.pt"
