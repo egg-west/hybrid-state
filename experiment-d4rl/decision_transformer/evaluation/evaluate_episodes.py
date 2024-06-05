@@ -190,12 +190,7 @@ def parallel_evaluate_episode_rtg(
     video_path=None
 ):
     torch.set_printoptions(precision=10)
-    with open("actions_reference/states.npy", "rb") as f:
-        state_list_tmp = np.load(f)
-    with open("actions_reference/rewards.npy", "rb") as f:
-        reward_list_tmp = np.load(f)
-    with open("actions_reference/dones.npy", "rb") as f:
-        done_list_tmp = np.load(f)
+    
     # "context_len" is the same as "max_length" in dt.py
     model.eval()
     model.to(device=device)
@@ -206,6 +201,12 @@ def parallel_evaluate_episode_rtg(
     #state = multi_envs.reset(seed=0)
     state = multi_envs.reset(seed=22)
     if args['action_analyze_no_interaction']:
+        with open("actions_reference/states.npy", "rb") as f:
+            state_list_tmp = np.load(f)
+        with open("actions_reference/rewards.npy", "rb") as f:
+            reward_list_tmp = np.load(f)
+        with open("actions_reference/dones.npy", "rb") as f:
+            done_list_tmp = np.load(f)
         state = state_list_tmp[0]
 
     if mode == "noise":
@@ -232,9 +233,13 @@ def parallel_evaluate_episode_rtg(
     # state_list_tmp = [state]
     reward_list_tmp = []
     # done_list_tmp = []
-    ANALYSIZE_RTG_RANGE = 3600 # 361
+    #ANALYSIZE_RTG_RANGE = 3600 # 361
+    #ANALYSIZE_RTG_RANGE = 5000
+    ANALYSIZE_RTG_RANGE = 500
+    GRANULARITY = 10 # consequtive ANALYSIZE_RTG_RANGE has an interval of GRANULARITY
     #ANALYSIZE_RTG_RANGE = 1
     kk_list = []
+    searched_rtg = []
     while not done_flags.all() and t < max_timesteps:
         if args['action_analyze']:
             print(t)
@@ -253,11 +258,12 @@ def parallel_evaluate_episode_rtg(
             #tmp_target_returns = torch.stack([target_returns[0, -context_len:, :].to(dtype=torch.float32) for _ in range(361)], dim=0)
             # print(tmp_target_returns.shape) # [361, seq_len, 1]
             if t == 0:
-                manual_RTGs = torch.arange(1, ANALYSIZE_RTG_RANGE + 1).to(dtype=torch.float32, device="cuda").unsqueeze(-1).unsqueeze(-1) / 1000.0
-                #manual_RTGs = torch.ones((1, 1, 1)).to(dtype=torch.float32, device="cuda") * 1.8
+                #manual_RTGs = torch.arange(1, ANALYSIZE_RTG_RANGE + 1).to(dtype=torch.float32, device="cuda").unsqueeze(-1).unsqueeze(-1) / 1000.0
+                manual_RTGs = torch.arange(1, ANALYSIZE_RTG_RANGE + 1).to(dtype=torch.float32, device="cuda").unsqueeze(-1).unsqueeze(-1) / (1000.0 / GRANULARITY)
+
                 tmp_target_returns = manual_RTGs
             else:
-                manual_RTGs = torch.arange(1, ANALYSIZE_RTG_RANGE + 1).to(dtype=torch.float32, device="cuda").unsqueeze(-1).unsqueeze(-1) / 1000.0
+                manual_RTGs = torch.arange(1, ANALYSIZE_RTG_RANGE + 1).to(dtype=torch.float32, device="cuda").unsqueeze(-1).unsqueeze(-1) / (1000.0 / GRANULARITY)
                 #manual_RTGs = torch.ones((1, 1, 1)).to(dtype=torch.float32, device="cuda") * pred_returns
                 tmp_target_returns = torch.cat([tmp_target_returns, manual_RTGs], dim=1)
 
@@ -277,55 +283,109 @@ def parallel_evaluate_episode_rtg(
                 tmp_target_returns[:, -context_len:, :].to(dtype=torch.float32),
                 tmp_timesteps[:, -context_len:].to(dtype=torch.long),
                 )
-            # if t == 0 or t==1:
-            #     print(f"\nINPUTS for search")
-            #     print(f"{tmp_states[0]=}")
-            #     print(f"{tmp_rewards[0]=}")
-            #     print(f"{tmp_target_returns[:]}") # 1799
-            #     #print(tmp_timesteps[0])
-            #     #print(f"{predict_actions_rtg[:][-1]=}") # 1799
-            #     print(f"{predict_actions_rtg=}")
-            #     print(f"{manual_RTGs[:]=}") # 1799
-            #     if t == 1:
-            #         raise NotImplementedError
-            #print(f"produced action: {tmp_action.shape=}")
+
             tmp_last_action = predict_actions_rtg[:, -1]
             a = None #tmp_last_action[361]
             a_find = False
 
             action_array = predict_actions_rtg[:, -1].to("cpu").numpy()
             if args['search_rtg']:
-                if t == 0:
-                    kk = int(target_return*1000)-1
-                    a_find = True
-                else:
-                    for i in range(3600-11, 0, -1):
-                        #if tmp_last_action[kk][0] <= 1.0 and tmp_last_action[kk][0] > tmp_last_action[kk + 1][0]:
-                        d = tmp_last_action[i][0] - tmp_last_action[i + 10][0]
-                        if d > 0.1:
-                            #print(f"{tmp_last_action[kk][0]=}, {tmp_last_action[kk + 1][0]=}")
-                            kk = i+10
-                            a_find = True
-                            break
-                        # if tmp_last_action[kk][0] > tmp_last_action[kk + 1][0]:
-                        #     #print(f"{tmp_last_action[kk][0]=}, {tmp_last_action[kk + 1][0]=}")
-                        #     a = tmp_last_action[kk]
-                        #     print(f"{kk=}")
-                        #     break
 
-                a = tmp_last_action[kk]
+                if max(tmp_last_action[:, 0]) <= 1.0:
+                    print('all valid!')
+                    if t - 1 < 0:
+                        raise NotImplementedError
+                    #new_k = int((float(searched_rtg[-1]*10) - reward_list_tmp[-1])/10)
+                    new_k = int((float(searched_rtg[0])*GRANULARITY - sum(reward_list_tmp))/GRANULARITY)
+                    a_found = True
+                    #searched_rtg.append(new_k)
+                else:
+                    for i in range(ANALYSIZE_RTG_RANGE-3, 0, -1):
+                        #if tmp_last_action[kk][0] <= 1.0 and tmp_last_action[kk][0] > tmp_last_action[kk + 1][0]:
+                        #d = tmp_last_action[i][0] - tmp_last_action[i + 10][0]
+                        d = tmp_last_action[i][0] - tmp_last_action[i + 2][0]
+                        #if d > 0.1:
+                        #if d <= -0.07 and tmp_last_action[i][0] <= 1.0:
+                        if t == 0 and tmp_last_action[i][0] <= 1.0:
+                            if i <= 40:
+                                raise NotImplementedError
+                            new_k = i - 40
+                            #print(f"{tmp_last_action[kk][0]=}, {tmp_last_action[kk + 1][0]=}")
+                            #kk = i+10
+                            
+                            #new_k = i + 2
+                            print(f"found k: {new_k}, d: {d}")
+                            a_find = True
+                            #searched_rtg.append(new_k)
+
+                            break
+                        if t != 0:
+                            print('t != 0!')
+                            if t - 1 < 0:
+                                raise NotImplementedError
+                            #new_k = int((float(searched_rtg[-1]*10) - reward_list_tmp[-1])/10)
+                            new_k = int((float(searched_rtg[0])*GRANULARITY - sum(reward_list_tmp))/GRANULARITY)
+                            a_found = True
+                            break
+                    #for i in range(3600-11, 0, -1):
+                    #for i in range(5000-11, 0, -1):
+                    # for i in range(ANALYSIZE_RTG_RANGE-3, 0, -1):
+                    #     #if tmp_last_action[kk][0] <= 1.0 and tmp_last_action[kk][0] > tmp_last_action[kk + 1][0]:
+                    #     #d = tmp_last_action[i][0] - tmp_last_action[i + 10][0]
+                    #     d = tmp_last_action[i][0] - tmp_last_action[i + 2][0]
+                    #     #if d > 0.1:
+                    #     #if d <= -0.07 and tmp_last_action[i][0] <= 1.0:
+                    #     if t == 0 and tmp_last_action[i][0] <= 1.0:
+                    #         if i <= 40:
+                    #             raise NotImplementedError
+                    #         new_k = i - 40
+                    #         #print(f"{tmp_last_action[kk][0]=}, {tmp_last_action[kk + 1][0]=}")
+                    #         #kk = i+10
+                            
+                    #         #new_k = i + 2
+                    #         print(f"found k: {new_k}, d: {d}")
+                    #         a_find = True
+                    #         #searched_rtg.append(new_k)
+
+                    #         break
+                    #     if t != 0 and d <= - 0.1:
+                    #         new_k = i
+                    #         print(f"found k: {new_k}, d: {d}")
+                    #         a_find = True
+                    #     # if tmp_last_action[kk][0] > tmp_last_action[kk + 1][0]:
+                    #     #     #print(f"{tmp_last_action[kk][0]=}, {tmp_last_action[kk + 1][0]=}")
+                    #     #     a = tmp_last_action[kk]
+                    #     #     print(f"{kk=}")
+                    #     #     break
+
+                
                 if not a_find:
-                    print(f"kk not found!")
+                    
                     #print(f"{tmp_last_action[:, 0]}")
-                    kk = -1
-                kk_list.append(kk)
+                    #kk = -1
+                    if t - 1 < 0:
+                        raise NotImplementedError
+                    # last RTG minus last reward
+                    #new_k = int((float(searched_rtg[-1]*GRANULARITY) - reward_list_tmp[-1])/GRANULARITY)
+                    new_k = int((float(searched_rtg[0])*GRANULARITY - sum(reward_list_tmp))/GRANULARITY)
+                    print()
+                    print(float(searched_rtg[0])*GRANULARITY)
+                    print(sum(reward_list_tmp))
+                    
+                    print(f"kk not found! k: {new_k}")
+                    a_found = True
+                    #searched_rtg.append(new_k)
+                    #kk_list.append(kk)
+                kk_list.append(new_k)
+                searched_rtg.append(new_k)
+                #a = tmp_last_action[kk]
+                a = tmp_last_action[new_k]
 
             with open(f"actions/actions_{t}.npy", 'wb') as f:
                 np.save(f, action_array)
 
         # print(f"{target_returns[0][-1]=}")
         # print(f"{states[0][-1]=}")
-
 
         #print(f"{actions=}")
         actions = torch.cat([actions, torch.zeros((num_envs, 1, act_dim), device=device)], dim=1)
@@ -351,17 +411,7 @@ def parallel_evaluate_episode_rtg(
                 timesteps[:, -context_len:].to(dtype=torch.long),
             )
             action = action[:, -1]
-            # if t == 0 or t==1:
-            #     print(t)
-            #     print("\n Input")
-            #     print(states[:, -context_len:, :].to(dtype=torch.float32))
-            #     print(actions[:, -context_len:, :].to(dtype=torch.float32))
-            #     print(rewards.to(dtype=torch.float32))
-            #     print((target_returns[:, -context_len:, :]*1000.0).to(int).to(dtype=torch.float32)/1000.0)
-            #     print(timesteps[:, -context_len:].to(dtype=torch.long))
-            #     print(action)
-            #     if t == 1:
-            #         raise NotImplementedError
+
         if args["visualize_attn"]:
             heatmap_list.append(attn_hm)
 
@@ -398,10 +448,10 @@ def parallel_evaluate_episode_rtg(
         #     action = tmp_action[int(target_returns[0][-1][0].cpu().item()*1000)][-1]
         if args['action_analyze'] and args['search_rtg']:
             #action = predict_actions_rtg[int(target_returns[0][-1][0].cpu().item()*1000) - 1][-1].unsqueeze(0)
-            if kk == -1: # if the searching does not find an action, use the RTG
-                action = predict_actions_rtg[int(target_returns[0][-1][0].cpu().item()*1000) - 1][-1].unsqueeze(0)
-            else:
-                action = a.unsqueeze(0)
+            #if kk == -1: # if the searching does not find an action, use the RTG
+            #    action = predict_actions_rtg[int(target_returns[0][-1][0].cpu().item()*1000) - 1][-1].unsqueeze(0)
+            #else:
+            action = a.unsqueeze(0)
             # to test manually set the batch size to 1 for RTG search
             #action = predict_actions_rtg[0][-1].unsqueeze(0)
 
@@ -453,8 +503,8 @@ def parallel_evaluate_episode_rtg(
            np.save(f, np.array(kk_list))
         # with open("actions/states.npy", 'wb') as f:
         #    np.save(f, np.array(state_list_tmp))
-        # with open("actions/rewards.npy", 'wb') as f:
-        #    np.save(f, np.array(reward_list_tmp))
+        with open("actions/rewards.npy", 'wb') as f:
+           np.save(f, np.array(reward_list_tmp))
         # with open("actions/dones.npy", 'wb') as f:
         #    np.save(f, np.array(done_list_tmp))
         print(f"{episode_returns=}")

@@ -28,6 +28,9 @@ description="${pretrained_lm}_pretrained-ratio=${sample_ratio}_${description}"
 gpu=${6}
 outdir="checkpoints/${env}_${dataset}_${description}_${seed}"
 h_id=3
+coef=0.1
+noise_lower=0.1
+noise_upper=0.3
 
 CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --dataset ${dataset} \
@@ -49,6 +52,9 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --description ${description} \
         --position_embed \
         --conservative_rtg \
+        --rtg_noise_lower ${noise_lower} \
+        --rtg_noise_upper ${noise_upper} \
+        --conservative_coef ${coef} \
        --save_checkpoints \
        --log_to_wandb \
 #       --quantize_rtg \

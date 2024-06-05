@@ -150,8 +150,10 @@ class SequenceTrainer(Trainer):
         loss = action_loss
 
         if self.args["conservative_rtg"]:
-            #noise = np.random.uniform(0.1, 0.3, size=rtg[:, :-1].shape)
-            noise = np.random.uniform(0.4, 0.5, size=rtg[:, :-1].shape)
+            #noise = np.random.uniform(0.1, 0.3, size=rtg[:, :-1].shape) # for hopper
+            #noise = np.random.uniform(0.4, 0.5, size=rtg[:, :-1].shape) # for halfcheetah
+            noise = np.random.uniform(self.args["rtg_noise_lower"], self.args["rtg_noise_upper"], size=rtg[:, :-1].shape)
+
             #print(f"{rtg[0, :10]=}")
             rtg[:, :-1] += torch.FloatTensor(noise).to(rtg.device)
             #print(f"{rtg[0, :10]=}")
@@ -180,7 +182,7 @@ class SequenceTrainer(Trainer):
                 None,
             )
 
-            loss += conservative_loss
+            loss += self.args["conservative_coef"] * conservative_loss
 
         if rtg_preds != None:
             rtg_target = (

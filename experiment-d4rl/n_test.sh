@@ -52,9 +52,9 @@ CUDA_VISIBLE_DEVICES=${gpu} python experiment.py --env ${env} \
         --position_embed \
         --eval_only \
         --n_envs ${n_envs} \
-        --path_to_load "checkpoints/halfcheetah_medium_gpt2_pretrained-ratio=1_c_H3_quantizeRTG_0/model_10.pt" \
+        --path_to_load "checkpoints/halfcheetah_medium_gpt2_pretrained-ratio=1_c_H3_0/model_50.pt" \
         --action_analyze \
-#        --search_rtg \
+        --search_rtg \
 #        --action_analyze_no_interaction \
 #       --path_to_load "checkpoints/hopper_medium_gpt2_pretrained-ratio=1_c_H3_quantizeRTG_0/model_10.pt" \
 #        --path_to_load "checkpoints/hopper_medium_gpt2_pretrained-ratio=1_conservative_H3_0/model_10.pt" \

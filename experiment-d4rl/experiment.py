@@ -59,7 +59,8 @@ def experiment(
         max_ep_len = 1000
         #env_targets = [3600, 2600, 2200, 1800]  # evaluation conditioning targets
         #env_targets = [3600, 2600]  # evaluation conditioning targets
-        env_targets = [3600, 2600, 2200, 1800]
+        #env_targets = [3600, 2600, 2200, 1800]
+        env_targets = [3600, 2600]
         #env_targets = [3000]
         #env_targets = list(range(1800, 2600, 50))#[2000]
         #env_targets = [3600, 2900, 2600, 2200, 2000, 1800, 1600, 1400]
@@ -70,7 +71,9 @@ def experiment(
         max_ep_len = 1000
         env_targets = [12000, 8000, 6000, 4500]
         #env_targets = [12000, 8000, 6000]
-        #env_targets = [6000]
+        #env_targets = [4500]
+        #env_targets = [4000, 4200, 4400, 4600, 4800]
+        env_targets = [8000, 6000, 4600]
         scale = 1000.0
     elif env_name == "walker2d":
         env = gym.make(f"walker2d-{dataset}-v2")
@@ -705,8 +708,8 @@ if __name__ == "__main__":
 
     # add adaptive rtg
     parser.add_argument("--mgdt_sampling", action="store_true", default=False)
-    parser.add_argument("--expert_weight", type=float, default=1) # 10, this is the inverse temperature `k`
-    parser.add_argument("--num_bins", type=int, default=60)
+    parser.add_argument("--expert_weight", type=float, default=5) # 10, this is the inverse temperature `k`
+    parser.add_argument("--num_bins", type=int, default=100) # 60
     parser.add_argument("--rtg_weight", type=float, default=0.001) #0.001
     parser.add_argument("--rtg_scale", type=float, default=1000.0)
     parser.add_argument("--top_percentile", type=float, default=0.15) #0.15
@@ -715,6 +718,10 @@ if __name__ == "__main__":
     parser.add_argument("--conservative_rtg", action="store_true", default=False)
     parser.add_argument("--quantize_rtg", action="store_true", default=False)
     parser.add_argument("--search_rtg", action="store_true", default=False)
+    parser.add_argument("--conservative_coef", type=float, default=0.01)
+    parser.add_argument("--rtg_noise_lower", type=float, default=0.3)
+    parser.add_argument("--rtg_noise_upper", type=float, default=0.4)
+
 
     # visualization, analysis
     parser.add_argument("--action_analyze", action="store_true", default=False)
